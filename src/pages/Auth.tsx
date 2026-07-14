@@ -21,22 +21,25 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-carbon flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8">
-        {/* Logo ícono */}
-        <div className="mb-6">
+        {/* Logo */}
+        <div className="mb-8">
           <img
-            src="/logo-icon.png"
+            src="/logo-full.png"
             alt="Modo Máquina"
-            className="w-20 h-auto drop-shadow-lg"
+            className="w-56 h-auto drop-shadow-2xl"
             draggable={false}
+            style={{ filter: 'drop-shadow(0 0 24px rgba(201,162,39,0.35))' }}
           />
         </div>
 
-        <h1 className="font-display font-black text-4xl text-white uppercase tracking-wide mb-1">
-          {mode === 'register' ? 'Comienza aquí' : 'Bienvenido de vuelta'}
-        </h1>
-        <p className="text-gray-500 text-sm font-body mb-8">
-          {mode === 'register' ? 'Tu modo máquina empieza hoy' : 'El modo máquina te espera'}
-        </p>
+        <div className="text-center mb-8">
+          <h1 className="font-display font-black text-3xl text-white uppercase tracking-wide mb-1">
+            {mode === 'register' ? 'Comienza aquí' : 'Bienvenido de vuelta'}
+          </h1>
+          <p className="text-gray-500 text-sm font-body">
+            {mode === 'register' ? 'Tu modo máquina empieza hoy' : 'El modo máquina te espera'}
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
           {mode === 'register' && (
