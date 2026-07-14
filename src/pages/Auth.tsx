@@ -20,28 +20,15 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-carbon flex flex-col">
-      {/* Header */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8">
-        {/* Logo small */}
-        <div className="mb-8">
-          <svg width="60" height="60" viewBox="0 0 120 120" fill="none">
-            <path
-              d="M 60 20 A 44 44 0 1 1 59.9 20"
-              stroke="#CEFF3C"
-              strokeWidth="6"
-              strokeLinecap="round"
-              fill="none"
-              strokeDasharray="230 50"
-            />
-            <path
-              d="M 35 80 L 35 45 L 60 68 L 85 45 L 85 80"
-              stroke="#CEFF3C"
-              strokeWidth="7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </svg>
+        {/* Logo ícono */}
+        <div className="mb-6">
+          <img
+            src="/logo-icon.png"
+            alt="Modo Máquina"
+            className="w-20 h-auto drop-shadow-lg"
+            draggable={false}
+          />
         </div>
 
         <h1 className="font-display font-black text-4xl text-white uppercase tracking-wide mb-1">
@@ -118,14 +105,12 @@ export default function Auth() {
           </button>
         </form>
 
-        {/* Divider */}
         <div className="w-full max-w-sm flex items-center gap-3 my-6">
           <div className="flex-1 h-px bg-gray-800" />
           <span className="text-gray-600 text-xs font-mono">O</span>
           <div className="flex-1 h-px bg-gray-800" />
         </div>
 
-        {/* Google */}
         <button
           onClick={() => { setLoading(true); setTimeout(() => navigate('/onboarding'), 800) }}
           className="w-full max-w-sm py-3.5 rounded-xl border border-gray-700 text-white font-body flex items-center justify-center gap-3 hover:border-gray-500 transition-colors"
@@ -150,7 +135,6 @@ export default function Auth() {
         </p>
       </div>
 
-      {/* Footer */}
       <p className="text-center text-xs text-gray-700 font-mono pb-6 px-6">
         Al registrarte aceptas nuestros Términos. Esta app orienta hábitos saludables y no reemplaza a profesionales de la salud.
       </p>

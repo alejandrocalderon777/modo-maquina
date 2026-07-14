@@ -8,11 +8,8 @@ export default function Splash() {
   const [phase, setPhase] = useState(0)
 
   useEffect(() => {
-    // Phase 0: logo appears
-    const t1 = setTimeout(() => setPhase(1), 600)
-    // Phase 1: tagline appears
-    const t2 = setTimeout(() => setPhase(2), 1500)
-    // Phase 2: redirect
+    const t1 = setTimeout(() => setPhase(1), 400)
+    const t2 = setTimeout(() => setPhase(2), 1400)
     const t3 = setTimeout(() => {
       if (onboardingComplete) {
         navigate('/dashboard')
@@ -37,64 +34,32 @@ export default function Splash() {
 
       {/* Glow backdrop */}
       <div
-        className="absolute w-64 h-64 rounded-full"
+        className="absolute w-80 h-80 rounded-full pointer-events-none"
         style={{
-          background: 'radial-gradient(circle, rgba(206,255,60,0.12) 0%, transparent 70%)',
-          filter: 'blur(40px)',
+          background: 'radial-gradient(circle, rgba(206,255,60,0.06) 0%, transparent 70%)',
+          filter: 'blur(60px)',
         }}
       />
 
-      {/* Logo */}
+      {/* Logo completo */}
       <div
-        className="relative transition-all duration-700"
+        className="relative transition-all duration-700 px-8"
         style={{
           opacity: phase >= 1 ? 1 : 0,
-          transform: phase >= 1 ? 'scale(1)' : 'scale(0.7)',
+          transform: phase >= 1 ? 'scale(1) translateY(0)' : 'scale(0.85) translateY(12px)',
         }}
       >
-        {/* Power symbol SVG */}
-        <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
-          {/* Outer ring (open at top) */}
-          <path
-            d="M 60 20 A 44 44 0 1 1 59.9 20"
-            stroke="#CEFF3C"
-            strokeWidth="6"
-            strokeLinecap="round"
-            fill="none"
-            strokeDasharray="230 50"
-          />
-          {/* M shape emerging from ring */}
-          <path
-            d="M 35 80 L 35 45 L 60 68 L 85 45 L 85 80"
-            stroke="#CEFF3C"
-            strokeWidth="7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </svg>
-      </div>
-
-      {/* App name */}
-      <div
-        className="mt-6 transition-all duration-500"
-        style={{ opacity: phase >= 1 ? 1 : 0 }}
-      >
-        <h1
-          className="font-display font-black text-5xl tracking-widest uppercase text-volt volt-text-glow"
-        >
-          MODO
-        </h1>
-        <h1
-          className="font-display font-black text-5xl tracking-widest uppercase text-volt volt-text-glow -mt-2"
-        >
-          MÁQUINA
-        </h1>
+        <img
+          src="/logo-full.png"
+          alt="Modo Máquina"
+          className="w-64 h-auto drop-shadow-2xl"
+          draggable={false}
+        />
       </div>
 
       {/* Tagline */}
       <p
-        className="mt-4 font-mono text-xs uppercase tracking-[0.3em] text-gray-500 transition-all duration-500"
+        className="mt-6 font-mono text-xs uppercase tracking-[0.3em] text-gray-500 transition-all duration-500"
         style={{ opacity: phase >= 2 ? 1 : 0 }}
       >
         ACTIVA TU MEJOR VERSIÓN
@@ -102,7 +67,7 @@ export default function Splash() {
 
       {/* Loading dots */}
       <div
-        className="mt-12 flex gap-2 transition-opacity duration-300"
+        className="mt-8 flex gap-2 transition-opacity duration-300"
         style={{ opacity: phase >= 2 ? 1 : 0 }}
       >
         {[0, 1, 2].map((i) => (
