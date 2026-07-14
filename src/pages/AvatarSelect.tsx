@@ -77,13 +77,13 @@ export default function AvatarSelect() {
               <div
                 className="rounded-xl overflow-hidden mb-3 transition-all"
                 style={{
-                  width: 88,
-                  height: 88,
+                  width: 84,
+                  height: 84,
                   border: `2px solid ${isSelected ? accentColor : '#2A2D38'}`,
-                  boxShadow: isSelected ? `0 0 16px ${accentColor}44` : 'none',
+                  boxShadow: isSelected ? `0 0 20px ${accentColor}55` : 'none',
                 }}
               >
-                <ArchetypeAvatar archetype={arch.id} size={88} />
+                <ArchetypeAvatar archetype={arch.id} size={84} />
               </div>
 
               <h3

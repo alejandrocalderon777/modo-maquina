@@ -90,7 +90,7 @@ export default function Dashboard() {
           <AvatarDisplay
             archetype="warrior"
             lineage={(profile.lineage as Lineage) || 'spartan'}
-            size="sm"
+            size="md"
           />
         </div>
       </div>
@@ -139,7 +139,7 @@ export default function Dashboard() {
           <AvatarDisplay
             archetype="warrior"
             lineage={(profile.lineage as Lineage) || 'spartan'}
-            size="sm"
+            size="md"
           />
           <div className="flex-1">
             <p className="font-mono text-xs uppercase tracking-widest mb-1" style={{ color: accentColor }}>
