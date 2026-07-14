@@ -4,6 +4,7 @@ import { useAppStore } from '../store/useAppStore'
 import { LINEAGES } from '../assets/data'
 import type { Lineage } from '../types'
 import clsx from 'clsx'
+import { LineageEmblemSVG } from '../components/AvatarDisplay'
 
 const LINEAGE_DETAIL: Record<Lineage, { description: string; culture: string; levelPreview: string }> = {
   spartan: {
@@ -73,7 +74,7 @@ export default function LineageSelect() {
                     : '#1C1F28',
                 }}
               >
-                <span className="text-3xl">{lineage.emblem}</span>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: lineage.color + "22", color: lineage.color }}><LineageEmblemSVG lineage={lineage.id} size={24} /></div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3

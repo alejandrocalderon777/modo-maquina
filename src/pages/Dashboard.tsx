@@ -88,7 +88,7 @@ export default function Dashboard() {
           </div>
           {/* Avatar mini */}
           <AvatarDisplay
-            archetype={(profile.archetype as Archetype) || 'runner'}
+            archetype="warrior"
             lineage={(profile.lineage as Lineage) || 'spartan'}
             size="sm"
           />
@@ -137,7 +137,7 @@ export default function Dashboard() {
       >
         <div className="flex items-start gap-3">
           <AvatarDisplay
-            archetype={(profile.archetype as Archetype) || 'runner'}
+            archetype="warrior"
             lineage={(profile.lineage as Lineage) || 'spartan'}
             size="sm"
           />
