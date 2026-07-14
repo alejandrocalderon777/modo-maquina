@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --carbon: #111318;
+  --carbon-light: #1C1F28;
+  --carbon-mid: #252933;
+  --volt: #CEFF3C;
+  --spartan: #E23A2E;
+  --viking: #6FD3E8;
+  --mapuche: #DE782C;
+  color-scheme: dark;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+html, body, #root {
+  height: 100%;
+  background-color: var(--carbon);
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: white;
+  overflow-x: hidden;
+}
+
+/* Safe area support (iOS notch) */
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--carbon-light); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+/* Volt glow utility */
+.volt-glow {
+  box-shadow: 0 0 20px rgba(206, 255, 60, 0.4);
+}
+.volt-text-glow {
+  text-shadow: 0 0 20px rgba(206, 255, 60, 0.5);
+}
+
+/* Avatar ring */
+.avatar-ring {
+  border: 2px solid var(--volt);
+  box-shadow: 0 0 0 4px rgba(206, 255, 60, 0.15), 0 0 20px rgba(206, 255, 60, 0.1);
+}
+
+/* Chat bubble animation */
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+.typing-dot:nth-child(1) { animation: typing 1.2s infinite 0s; }
+.typing-dot:nth-child(2) { animation: typing 1.2s infinite 0.2s; }
+.typing-dot:nth-child(3) { animation: typing 1.2s infinite 0.4s; }
+
+/* Lineage backgrounds */
+.bg-spartan-gradient {
+  background: linear-gradient(135deg, #1a0a09 0%, #2d1210 50%, #1a0a09 100%);
+}
+.bg-viking-gradient {
+  background: linear-gradient(135deg, #081419 0%, #0d2530 50%, #081419 100%);
+}
+.bg-mapuche-gradient {
+  background: linear-gradient(135deg, #1a0e06 0%, #2d1a0b 50%, #1a0e06 100%);
+}
+
+/* Progress ring */
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}

@@ -1,0 +1,80 @@
+export type Archetype = 'runner' | 'builder' | 'fitness' | 'warrior'
+export type Lineage = 'spartan' | 'viking' | 'mapuche'
+export type Goal = 'lose_weight' | 'gain_muscle' | 'health' | 'endurance'
+export type Level = 'sedentary' | 'beginner' | 'intermediate' | 'advanced'
+export type Equipment = 'gym' | 'home' | 'outdoor' | 'none'
+export type Emotion = 1 | 2 | 3 | 4 | 5
+
+export interface UserProfile {
+  name: string
+  goal: Goal
+  level: Level
+  equipment: Equipment[]
+  daysPerWeek: number
+  archetype: Archetype
+  lineage: Lineage
+  emotionToday?: Emotion
+}
+
+export interface Measurements {
+  weight: number
+  height: number
+  neck?: number
+  chest?: number
+  waist?: number
+  hips?: number
+  bicep?: number
+  thigh?: number
+}
+
+export interface DayMacros {
+  calories: { consumed: number; target: number }
+  protein: { consumed: number; target: number }
+  carbs: { consumed: number; target: number }
+  fat: { consumed: number; target: number }
+  water: { consumed: number; target: number }
+}
+
+export interface AppState {
+  // Onboarding
+  onboardingComplete: boolean
+  currentStep: number
+
+  // User
+  profile: Partial<UserProfile>
+  measurements: Partial<Measurements>
+
+  // Daily
+  streakDays: number
+  xpPoints: number
+  macros: DayMacros
+
+  // Actions
+  setProfile: (data: Partial<UserProfile>) => void
+  setMeasurements: (data: Partial<Measurements>) => void
+  completeOnboarding: () => void
+  setEmotion: (emotion: Emotion) => void
+  addXP: (points: number) => void
+}
+
+export interface LineageConfig {
+  id: Lineage
+  name: string
+  fullName: string
+  color: string
+  bgClass: string
+  textColor: string
+  borderColor: string
+  levels: string[]
+  coachStyle: string
+  emblem: string
+  free: boolean
+}
+
+export interface ArchetypeConfig {
+  id: Archetype
+  name: string
+  description: string
+  emoji: string
+  traits: string[]
+}
