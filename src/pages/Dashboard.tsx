@@ -87,11 +87,20 @@ export default function Dashboard() {
             <p className="font-mono text-xs text-gray-600 mt-0.5">XP</p>
           </div>
           {/* Avatar mini */}
-          <AvatarDisplay
-            archetype="warrior"
-            lineage={(profile.lineage as Lineage) || 'spartan'}
-            size="md"
-          />
+          <div
+            className="rounded-xl overflow-hidden flex-shrink-0"
+            style={{
+              width: 72, height: 72,
+              border: `2px solid ${accentColor}`,
+              boxShadow: `0 0 16px ${accentColor}44`,
+            }}
+          >
+            <img
+              src="/avatar-warrior.png"
+              alt="Coach"
+              className="w-full h-full object-cover"
+            />
+          </div>
         </div>
       </div>
 
@@ -136,11 +145,20 @@ export default function Dashboard() {
         }}
       >
         <div className="flex items-start gap-3">
-          <AvatarDisplay
-            archetype="warrior"
-            lineage={(profile.lineage as Lineage) || 'spartan'}
-            size="md"
-          />
+          <div
+            className="rounded-xl overflow-hidden flex-shrink-0"
+            style={{
+              width: 72, height: 72,
+              border: `2px solid ${accentColor}`,
+              boxShadow: `0 0 16px ${accentColor}44`,
+            }}
+          >
+            <img
+              src="/avatar-warrior.png"
+              alt="Coach"
+              className="w-full h-full object-cover"
+            />
+          </div>
           <div className="flex-1">
             <p className="font-mono text-xs uppercase tracking-widest mb-1" style={{ color: accentColor }}>
               Coach · {lineage?.fullName}
