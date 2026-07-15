@@ -182,7 +182,7 @@ export default function Dashboard() {
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-carbon-light">
         <div className="flex items-center justify-between mb-4">
           <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Nutrición de hoy</p>
-          <button onClick={() => navigate('/food-log')} className="text-xs font-mono hover:opacity-80" style={{ color: accentColor }}>Registrar +</button>
+          <span className="text-xs font-mono text-gray-600">hoy</span>
         </div>
         <div className="flex items-center justify-between">
           <CalorieRing
@@ -231,7 +231,7 @@ export default function Dashboard() {
           </span>
         </div>
         <p className="text-xs font-body text-gray-600 mt-3 italic">
-          💡 Aún no has registrado nada hoy — toca "Registrar +" para empezar.
+          💡 Aún no has registrado nada hoy — toca el botón + para empezar.
         </p>
       </div>
 
@@ -303,6 +303,43 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+
+      {/* FAB — Registrar comida */}
+      <button
+        onClick={() => navigate('/food-log')}
+        className="fixed z-50 flex items-center justify-center shadow-2xl active:scale-95 transition-transform"
+        style={{
+          bottom: '88px',
+          right: '20px',
+          width: '60px',
+          height: '60px',
+          borderRadius: '18px',
+          background: 'linear-gradient(135deg, #CEFF3C 0%, #a8d400 100%)',
+          boxShadow: '0 4px 24px rgba(206,255,60,0.45)',
+        }}
+        aria-label="Registrar comida"
+      >
+        {/* Fork + knife SVG */}
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#111318" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
+          <path d="M7 2v20"/>
+          <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
+        </svg>
+        {/* + badge */}
+        <span
+          className="absolute flex items-center justify-center font-black text-xs"
+          style={{
+            top: '-6px', right: '-6px',
+            width: '20px', height: '20px',
+            borderRadius: '50%',
+            background: '#E23A2E',
+            color: '#fff',
+            fontSize: '14px',
+            lineHeight: 1,
+          }}
+        >+</span>
+      </button>
 
       {/* Nav bar */}
       <nav
