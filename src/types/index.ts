@@ -41,6 +41,7 @@ export interface AppState {
   profile: Partial<UserProfile>; measurements: Partial<Measurements>
   streakDays: number; xpPoints: number; macros: DayMacros
   foodLog: FoodEntry[]
+  bodyPhotos: BodyPhoto[]
 
   setProfile: (data: Partial<UserProfile>) => void
   setMeasurements: (data: Partial<Measurements>) => void
@@ -50,6 +51,7 @@ export interface AppState {
   addFood: (entry: FoodEntry) => void
   removeFood: (id: string) => void
   addWater: (ml: number) => void
+  addBodyPhoto: (photo: BodyPhoto) => void
 }
 export interface LineageConfig {
   id: Lineage; name: string; fullName: string; color: string
@@ -58,4 +60,11 @@ export interface LineageConfig {
 }
 export interface ArchetypeConfig {
   id: Archetype; name: string; description: string; emoji: string; traits: string[]
+}
+
+export interface BodyPhoto {
+  id: string
+  date: string       // YYYY-MM-DD
+  dataUrl: string    // compressed base64 JPEG
+  note?: string
 }

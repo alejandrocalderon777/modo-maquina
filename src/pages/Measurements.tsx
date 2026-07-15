@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import BodyScan from '../components/BodyScan'
 import { useAppStore } from '../store/useAppStore'
+import type { BodyPhoto } from '../types'
+import { useNavigate } from 'react-router-dom'
 import { LINEAGES } from '../assets/data'
 import type { Measurements } from '../types'
 
@@ -15,6 +17,9 @@ export default function MeasurementsPage() {
 
   const [data, setData] = useState<Partial<Measurements>>({})
   const [section, setSection] = useState<'basic' | 'body'>('basic')
+  const [showBodyScan, setShowBodyScan] = useState(false)
+  const [savedPhoto, setSavedPhoto] = useState<string | null>(null)
+  const addBodyPhoto = useAppStore((s) => s.addBodyPhoto)
 
   const set = (field: keyof Measurements, val: string) => {
     const num = parseFloat(val)
@@ -32,6 +37,17 @@ export default function MeasurementsPage() {
     navigate('/dashboard')
   }
 
+  const handleBodyPhoto = (dataUrl: string) => {
+    setSavedPhoto(dataUrl)
+    setShowBodyScan(false)
+    const photo: BodyPhoto = {
+      id: Date.now().toString(),
+      date: new Date().toISOString().split('T')[0],
+      dataUrl,
+    }
+    addBodyPhoto(photo)
+  }
+
   const canContinueBasic = data.weight && data.height
   const canFinish = true // body measurements are optional
 
@@ -40,6 +56,13 @@ export default function MeasurementsPage() {
 
   return (
     <div className="min-h-screen bg-carbon flex flex-col">
+      {showBodyScan && (
+        <BodyScan
+          onPhoto={handleBodyPhoto}
+          onClose={() => setShowBodyScan(false)}
+          accentColor={accentColor}
+        />
+      )}
       {/* Header */}
       <div className="px-4 pt-12 pb-4">
         <p className="font-mono text-xs uppercase tracking-widest mb-1" style={{ color: accentColor }}>
@@ -113,6 +136,42 @@ export default function MeasurementsPage() {
             <p className="text-gray-600 text-xs font-mono">
               Toma las medidas con cinta métrica sin ropa, relajado. El avatar te mostrará exactamente dónde medir cada mes.
             </p>
+            {/* Body scan button */}
+            <div className="rounded-2xl overflow-hidden border border-gray-800">
+              {savedPhoto ? (
+                <div className="relative">
+                  <img src={savedPhoto} alt="Foto corporal" className="w-full h-48 object-cover object-top" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-3">
+                    <div className="flex items-center justify-between w-full">
+                      <div>
+                        <p className="text-white font-display font-bold text-sm">📸 Foto de referencia guardada</p>
+                        <p className="text-gray-400 text-xs font-mono">{new Date().toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric' })}</p>
+                      </div>
+                      <button onClick={() => setShowBodyScan(true)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-mono bg-white/20 text-white">
+                        Cambiar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowBodyScan(true)}
+                  className="w-full flex items-center gap-4 p-4 text-left"
+                  style={{ background: '#1C1F28' }}
+                >
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
+                    style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}30` }}>
+                    📸
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white font-display font-bold text-sm">Foto corporal de referencia</p>
+                    <p className="text-gray-500 text-xs font-body mt-0.5">Recomendado · Para comparar tu progreso visual mes a mes</p>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              )}
+            </div>
             {[
               { field: 'neck', label: 'Cuello', unit: 'cm', placeholder: '38' },
               { field: 'chest', label: 'Pecho / Busto', unit: 'cm', placeholder: '95' },

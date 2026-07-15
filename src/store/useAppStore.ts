@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { AppState, UserProfile, Measurements, Emotion, FoodEntry } from '../types'
+import type { AppState, UserProfile, Measurements, Emotion, FoodEntry, BodyPhoto } from '../types'
 
 const today = () => new Date().toISOString().split('T')[0]
 
@@ -34,6 +34,7 @@ export const useAppStore = create<AppState>()(
       xpPoints: 0,
       macros: defaultMacros,
       foodLog: [],
+      bodyPhotos: [],
 
       setProfile: (data: Partial<UserProfile>) =>
         set((state) => ({ profile: { ...state.profile, ...data } })),
@@ -62,6 +63,9 @@ export const useAppStore = create<AppState>()(
           return { foodLog: newLog, macros: calcDayMacros(newLog, state.macros) }
         }),
 
+      addBodyPhoto: (photo: BodyPhoto) =>
+        set((state) => ({ bodyPhotos: [photo, ...state.bodyPhotos] })),
+
       addWater: (ml: number) =>
         set((state) => ({
           macros: {
@@ -83,6 +87,7 @@ export const useAppStore = create<AppState>()(
         xpPoints: state.xpPoints,
         foodLog: state.foodLog,
         macros: state.macros,
+        bodyPhotos: state.bodyPhotos,
       }),
     }
   )
