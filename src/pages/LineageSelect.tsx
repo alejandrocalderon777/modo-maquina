@@ -74,7 +74,20 @@ export default function LineageSelect() {
                     : '#1C1F28',
                 }}
               >
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: lineage.color + "22", color: lineage.color }}><LineageEmblemSVG lineage={lineage.id} size={24} /></div>
+                <div
+                    className="rounded-xl overflow-hidden flex-shrink-0"
+                    style={{
+                      width: 52, height: 52,
+                      border: `2px solid ${lineage.color}55`,
+                      boxShadow: isSelected ? `0 0 12px ${lineage.color}44` : 'none',
+                    }}
+                  >
+                    <img
+                      src={`/linaje-${lineage.id}.png`}
+                      alt={lineage.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3
