@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore'
 import { LINEAGES, LINEAGE_COACH_PHRASES } from '../assets/data'
 import AvatarDisplay from '../components/AvatarDisplay'
@@ -21,6 +22,7 @@ const WORKOUTS_TODAY = [
 ]
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const profile = useAppStore((s) => s.profile)
   const measurements = useAppStore((s) => s.measurements)
   const streakDays = useAppStore((s) => s.streakDays)
