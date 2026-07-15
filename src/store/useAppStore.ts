@@ -1,8 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { AppState, UserProfile, Measurements, Emotion, DayMacros } from '../types'
+import type { AppState, UserProfile, Measurements, Emotion, FoodEntry } from '../types'
 
-const defaultMacros: DayMacros = {
+const today = () => new Date().toISOString().split('T')[0]
+
+const defaultMacros = {
   calories: { consumed: 0, target: 2200 },
   protein: { consumed: 0, target: 160 },
   carbs: { consumed: 0, target: 220 },
@@ -10,9 +12,20 @@ const defaultMacros: DayMacros = {
   water: { consumed: 0, target: 2000 },
 }
 
+function calcDayMacros(foodLog: FoodEntry[], targets: typeof defaultMacros) {
+  const todayEntries = foodLog.filter(e => e.date === today())
+  return {
+    calories: { consumed: todayEntries.reduce((s, e) => s + e.cal, 0), target: targets.calories.target },
+    protein: { consumed: Math.round(todayEntries.reduce((s, e) => s + e.prot, 0) * 10) / 10, target: targets.protein.target },
+    carbs: { consumed: Math.round(todayEntries.reduce((s, e) => s + e.carbs, 0) * 10) / 10, target: targets.carbs.target },
+    fat: { consumed: Math.round(todayEntries.reduce((s, e) => s + e.fat, 0) * 10) / 10, target: targets.fat.target },
+    water: targets.water,
+  }
+}
+
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       onboardingComplete: false,
       currentStep: 0,
       profile: {},
@@ -20,6 +33,7 @@ export const useAppStore = create<AppState>()(
       streakDays: 0,
       xpPoints: 0,
       macros: defaultMacros,
+      foodLog: [],
 
       setProfile: (data: Partial<UserProfile>) =>
         set((state) => ({ profile: { ...state.profile, ...data } })),
@@ -35,6 +49,29 @@ export const useAppStore = create<AppState>()(
 
       addXP: (points: number) =>
         set((state) => ({ xpPoints: state.xpPoints + points })),
+
+      addFood: (entry: FoodEntry) =>
+        set((state) => {
+          const newLog = [...state.foodLog, entry]
+          return { foodLog: newLog, macros: calcDayMacros(newLog, state.macros) }
+        }),
+
+      removeFood: (id: string) =>
+        set((state) => {
+          const newLog = state.foodLog.filter(e => e.id !== id)
+          return { foodLog: newLog, macros: calcDayMacros(newLog, state.macros) }
+        }),
+
+      addWater: (ml: number) =>
+        set((state) => ({
+          macros: {
+            ...state.macros,
+            water: {
+              ...state.macros.water,
+              consumed: Math.min(state.macros.water.consumed + ml, state.macros.water.target),
+            },
+          },
+        })),
     }),
     {
       name: 'modomaquina-storage',
@@ -44,6 +81,8 @@ export const useAppStore = create<AppState>()(
         measurements: state.measurements,
         streakDays: state.streakDays,
         xpPoints: state.xpPoints,
+        foodLog: state.foodLog,
+        macros: state.macros,
       }),
     }
   )

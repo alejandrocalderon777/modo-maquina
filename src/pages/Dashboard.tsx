@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { LINEAGES, LINEAGE_COACH_PHRASES } from '../assets/data'
 import AvatarDisplay from '../components/AvatarDisplay'
@@ -180,7 +180,7 @@ export default function Dashboard() {
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-carbon-light">
         <div className="flex items-center justify-between mb-4">
           <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Nutrición de hoy</p>
-          <button className="text-xs font-mono" style={{ color: accentColor }}>Registrar +</button>
+          <button onClick={() => navigate('/food-log')} className="text-xs font-mono hover:opacity-80" style={{ color: accentColor }}>Registrar +</button>
         </div>
         <div className="flex items-center justify-between">
           <CalorieRing
