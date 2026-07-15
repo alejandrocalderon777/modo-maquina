@@ -43,7 +43,7 @@ export default function FoodLog() {
     setScanState('loading')
     try {
       const product = await lookupBarcode(code)
-      if (!product || product.cal === 0) {
+      if (!product) {
         setScanState('notfound')
       } else {
         setSelected({ source: 'barcode', item: product })
