@@ -69,6 +69,16 @@ const STEPS: Step[] = [
       { value: '5', label: '5+ días', emoji: '📅' },
     ],
   },
+  {
+    question: 'Una última cosa para calcular tus macros exactos: ¿cuál es tu sexo biológico?',
+    delay: 600,
+    type: 'choice',
+    field: 'sex',
+    options: [
+      { value: 'male', label: 'Hombre', emoji: '♂️' },
+      { value: 'female', label: 'Mujer', emoji: '♀️' },
+    ],
+  },
 ]
 
 export default function Onboarding() {

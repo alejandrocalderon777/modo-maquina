@@ -9,8 +9,10 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 export interface UserProfile {
   name: string; goal: Goal; level: Level; equipment: Equipment[]
   daysPerWeek: number; archetype: Archetype; lineage: Lineage; emotionToday?: Emotion
+  sex?: 'male' | 'female'; age?: number
 }
 export interface Measurements {
+  age?: number
   weight: number; height: number; neck?: number; chest?: number
   waist?: number; hips?: number; bicep?: number; thigh?: number
 }
@@ -52,6 +54,7 @@ export interface AppState {
   removeFood: (id: string) => void
   addWater: (ml: number) => void
   addBodyPhoto: (photo: BodyPhoto) => void
+  setMacroTargets: (targets: { calories: number; protein: number; carbs: number; fat: number }) => void
 }
 export interface LineageConfig {
   id: Lineage; name: string; fullName: string; color: string

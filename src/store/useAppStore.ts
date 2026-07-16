@@ -66,6 +66,17 @@ export const useAppStore = create<AppState>()(
       addBodyPhoto: (photo: BodyPhoto) =>
         set((state) => ({ bodyPhotos: [photo, ...state.bodyPhotos] })),
 
+      setMacroTargets: (targets) =>
+        set((state) => ({
+          macros: {
+            calories: { consumed: state.macros.calories.consumed, target: targets.calories },
+            protein:  { consumed: state.macros.protein.consumed,  target: targets.protein },
+            carbs:    { consumed: state.macros.carbs.consumed,    target: targets.carbs },
+            fat:      { consumed: state.macros.fat.consumed,      target: targets.fat },
+            water:    state.macros.water,
+          },
+        })),
+
       addWater: (ml: number) =>
         set((state) => ({
           macros: {

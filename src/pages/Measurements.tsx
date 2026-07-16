@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import BodyScan from '../components/BodyScan'
+import { calculateMacros, GOAL_LABELS } from '../utils/macros'
 import { useAppStore } from '../store/useAppStore'
 import type { BodyPhoto } from '../types'
 import { useNavigate } from 'react-router-dom'
@@ -16,10 +17,11 @@ export default function MeasurementsPage() {
   const accentColor = lineage?.color || '#CEFF3C'
 
   const [data, setData] = useState<Partial<Measurements>>({})
-  const [section, setSection] = useState<'basic' | 'body'>('basic')
+  const [section, setSection] = useState<'basic' | 'goals' | 'body'>('basic')
   const [showBodyScan, setShowBodyScan] = useState(false)
   const [savedPhoto, setSavedPhoto] = useState<string | null>(null)
   const addBodyPhoto = useAppStore((s) => s.addBodyPhoto)
+  const setMacroTargets = useAppStore((s) => s.setMacroTargets)
 
   const set = (field: keyof Measurements, val: string) => {
     const num = parseFloat(val)
@@ -29,6 +31,22 @@ export default function MeasurementsPage() {
 
   const handleContinue = () => {
     if (section === 'basic') {
+      setSection('goals')
+      return
+    }
+    if (section === 'goals') {
+      // Save calculated macros
+      if (data.weight && data.height) {
+        const result = calculateMacros({
+          weight: data.weight,
+          height: data.height,
+          age: data.age,
+          sex: profile.sex,
+          goal: profile.goal as string,
+          level: profile.level as string,
+        })
+        setMacroTargets({ calories: result.calories, protein: result.protein, carbs: result.carbs, fat: result.fat })
+      }
       setSection('body')
       return
     }
@@ -49,6 +67,7 @@ export default function MeasurementsPage() {
   }
 
   const canContinueBasic = data.weight && data.height
+  const macroPreview = (data.weight && data.height) ? calculateMacros({ weight: data.weight, height: data.height, age: data.age, sex: profile.sex, goal: profile.goal as string, level: profile.level as string }) : null
   const canFinish = true // body measurements are optional
 
   const inputClass =
@@ -69,35 +88,37 @@ export default function MeasurementsPage() {
           Evaluación inicial
         </p>
         <h1 className="font-display font-black text-4xl text-white uppercase leading-tight">
-          {section === 'basic' ? 'DATOS\nBÁSICOS' : 'MEDIDAS\nCORPORALES'}
+          {section === 'basic' ? 'DATOS\nBÁSICOS' : section === 'goals' ? 'TU PLAN\nPERSONAL' : 'MEDIDAS\nCORPORALES'}
         </h1>
         <p className="text-gray-500 text-sm font-body mt-2">
           {section === 'basic'
             ? 'Nos sirven como punto de partida para tu plan.'
-            : 'Opcionales pero muy útiles para trackear tu progreso real. El avatar te guiará mes a mes para tomarlas siempre igual.'}
+            : section === 'goals'
+            ? 'Basado en tu objetivo y nivel, calculamos tus macros diarios exactos.'
+            : 'Opcionales pero muy útiles para trackear tu progreso real.'}
         </p>
       </div>
 
       {/* Steps indicator */}
       <div className="px-4 pb-4 flex gap-2">
-        {['Básico', 'Medidas'].map((s, i) => (
+        {['Básico', 'Objetivos', 'Medidas'].map((s, i) => (
           <div key={s} className="flex items-center gap-2">
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-bold"
               style={{
                 background:
-                  (i === 0 && section === 'basic') || (i === 1 && section === 'body')
+                  (i === 0 && section === 'basic') || (i === 1 && section === 'goals') || (i === 2 && section === 'body')
                     ? accentColor
-                    : i === 0 && section === 'body'
+                    : ((i === 0 && (section === 'goals' || section === 'body')) || (i === 1 && section === 'body'))
                     ? '#333'
                     : '#1C1F28',
-                color: i === 0 && section === 'body' ? '#666' : '#111318',
+                color: ((i === 0 && (section === 'goals' || section === 'body')) || (i === 1 && section === 'body')) ? '#666' : '#111318',
               }}
             >
-              {i === 0 && section === 'body' ? '✓' : i + 1}
+              {(i === 0 && (section === 'goals' || section === 'body')) || (i === 1 && section === 'body') ? '✓' : i + 1}
             </div>
             <span className="text-xs font-mono text-gray-500">{s}</span>
-            {i === 0 && <span className="text-gray-700 mx-1">›</span>}
+            {i < 2 && <span className="text-gray-700 mx-1">›</span>}
           </div>
         ))}
       </div>
@@ -107,6 +128,7 @@ export default function MeasurementsPage() {
           <>
             <Field label="Peso actual" unit="kg" placeholder="75" onValue={(v) => set('weight', v)} />
             <Field label="Estatura" unit="cm" placeholder="175" onValue={(v) => set('height', v)} />
+            <Field label="Edad" unit="años" placeholder="30" onValue={(v) => { const n = parseFloat(v); if (!isNaN(n)) setData(p => ({ ...p, age: n })) }} />
             {data.weight && data.height && (
               <div
                 className="rounded-xl p-4 animate-fade-in"
@@ -130,6 +152,73 @@ export default function MeasurementsPage() {
                 </p>
               </div>
             )}
+          </>
+        ) : section === 'goals' ? (
+          <>
+            {/* Goal summary */}
+            {profile.goal && GOAL_LABELS[profile.goal as string] && (
+              <div className="rounded-2xl p-4 mb-2" style={{ background: `${accentColor}10`, border: `1px solid ${accentColor}30` }}>
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="text-3xl">{GOAL_LABELS[profile.goal as string].emoji}</span>
+                  <div>
+                    <p className="font-display font-black text-white text-lg">{GOAL_LABELS[profile.goal as string].label}</p>
+                    <p className="text-xs font-mono" style={{ color: accentColor }}>{GOAL_LABELS[profile.goal as string].desc}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Calculated macros */}
+            {macroPreview && (
+              <div className="rounded-2xl p-4 space-y-3" style={{ background: '#1C1F28' }}>
+                <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Tu ingesta diaria recomendada</p>
+
+                {/* Calories */}
+                <div className="flex items-center justify-between py-3 border-b border-gray-800">
+                  <div>
+                    <p className="text-white font-display font-bold text-base">Calorías totales</p>
+                    <p className="text-gray-500 text-xs font-mono">TDEE: {macroPreview.tdee} kcal{macroPreview.deficit !== 0 ? ` · ${macroPreview.deficit > 0 ? '+' : ''}${Math.round(macroPreview.deficit * 100)}%` : ''}</p>
+                  </div>
+                  <p className="font-display font-black text-3xl" style={{ color: accentColor }}>{macroPreview.calories}</p>
+                </div>
+
+                {/* Macros grid */}
+                <div className="grid grid-cols-3 gap-3 pt-1">
+                  {[
+                    { label: 'Proteína', value: macroPreview.protein, unit: 'g', color: '#E23A2E', tip: `${Math.round(macroPreview.protein / (data.weight ?? 1) * 10) / 10}g/kg` },
+                    { label: 'Carbohidratos', value: macroPreview.carbs, unit: 'g', color: '#6FD3E8', tip: `${Math.round(macroPreview.carbs * 4 / macroPreview.calories * 100)}% kcal` },
+                    { label: 'Grasas', value: macroPreview.fat, unit: 'g', color: '#DE782C', tip: `${Math.round(macroPreview.fat * 9 / macroPreview.calories * 100)}% kcal` },
+                  ].map(m => (
+                    <div key={m.label} className="rounded-xl p-3 text-center" style={{ background: `${m.color}10`, border: `1px solid ${m.color}25` }}>
+                      <p className="font-display font-black text-2xl" style={{ color: m.color }}>{m.value}</p>
+                      <p className="text-white text-xs font-mono">{m.unit}</p>
+                      <p className="text-gray-600 text-xs font-mono mt-0.5">{m.label}</p>
+                      <p className="text-xs font-mono mt-1" style={{ color: m.color, opacity: 0.7 }}>{m.tip}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-gray-600 text-xs font-body pt-1">
+                  Estos valores se ajustan automáticamente a tu progreso. Puedes modificarlos en cualquier momento desde tu perfil.
+                </p>
+              </div>
+            )}
+
+            {/* Exercise target */}
+            <div className="rounded-2xl p-4" style={{ background: '#1C1F28' }}>
+              <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Ejercicio semanal</p>
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl flex-shrink-0"
+                  style={{ background: `${accentColor}15` }}>🏋️</div>
+                <div>
+                  <p className="text-white font-display font-bold text-base">{profile.daysPerWeek ?? '3'} días por semana</p>
+                  <p className="text-gray-500 text-xs font-mono capitalize">{
+                    ({ sedentary:'Sedentario', beginner:'Principiante', intermediate:'Intermedio', advanced:'Avanzado' }[profile.level as string]) ?? profile.level
+                  } · {String(profile.equipment) === 'gym' ? 'Gimnasio' : String(profile.equipment) === 'home' ? 'Casa' : String(profile.equipment) === 'outdoor' ? 'Aire libre' : 'Sin equipo'}</p>
+                  <p className="text-gray-600 text-xs font-body mt-0.5">Tu plan de entrenamiento se adapta a esto cada semana.</p>
+                </div>
+              </div>
+            </div>
           </>
         ) : (
           <>
@@ -197,7 +286,7 @@ export default function MeasurementsPage() {
       <div className="px-4 pb-10 pt-3">
         <button
           onClick={handleContinue}
-          disabled={section === 'basic' && !canContinueBasic}
+          disabled={(section === 'basic' && !canContinueBasic)}
           className="w-full py-4 rounded-xl font-display font-bold text-lg uppercase tracking-widest transition-all disabled:opacity-30"
           style={{
             background: (section === 'basic' && canContinueBasic) || section === 'body' ? accentColor : '#333',
@@ -208,9 +297,9 @@ export default function MeasurementsPage() {
                 : 'none',
           }}
         >
-          {section === 'basic' ? 'CONTINUAR' : 'ACTIVAR MI MODO MÁQUINA 🔥'}
+          {section === 'basic' ? 'CONTINUAR' : section === 'goals' ? 'CONFIRMAR PLAN →' : 'ACTIVAR MI MODO MÁQUINA 🔥'}
         </button>
-        {section === 'body' && (
+        {(section === 'goals' || section === 'body') && (
           <button
             onClick={() => { setMeasurements(data); completeOnboarding(); navigate('/dashboard') }}
             className="w-full py-3 mt-2 text-gray-600 font-mono text-sm"
