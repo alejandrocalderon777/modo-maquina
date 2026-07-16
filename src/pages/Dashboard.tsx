@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore'
 import { LINEAGES, LINEAGE_COACH_PHRASES } from '../assets/data'
+import { MUSCLE_GROUPS, exercisesByMuscle, type MuscleGroup } from '../assets/exercises'
+import { adjustWorkout, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
 import type { Emotion } from '../types'
 
@@ -79,6 +81,10 @@ export default function Dashboard() {
 
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [progressPeriod, setProgressPeriod] = useState<'day'|'week'|'month'|'year'>('week')
+  const [openMuscle, setOpenMuscle] = useState<MuscleGroup | null>(null)
+  const [adjusting, setAdjusting] = useState(false)
+  const [adjustedPlan, setAdjustedPlan] = useState<AdjustedPlan | null>(null)
+  const [adjustError, setAdjustError] = useState('')
 
   // Workout state from store (persists across renders)
   const todayDone = workoutCompletions[todayStr] || []
@@ -101,6 +107,47 @@ export default function Dashboard() {
     const wasDone = todayDone.includes(name)
     toggleWorkout(todayStr, name)
     if (!wasDone) addXP(25)
+  }
+
+  const WEEK_DAYS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
+  const BASE_WEEK = [
+    { day:'Lun', type:'Fuerza — Tren superior' },
+    { day:'Mar', type:'Cardio — HIIT 30 min' },
+    { day:'Mié', type:'Fuerza — Tren inferior' },
+    { day:'Jue', type:'Descanso activo' },
+    { day:'Vie', type:'Fuerza — Full body' },
+    { day:'Sáb', type:'Cardio — Larga distancia' },
+    { day:'Dom', type:'Descanso' },
+  ]
+
+  const handleAdjustWorkout = async () => {
+    setAdjusting(true)
+    setAdjustError('')
+    setAdjustedPlan(null)
+    try {
+      // today index (0=Lun..6=Dom)
+      const jsDay = new Date().getDay() // 0=Dom
+      const todayIdx = jsDay === 0 ? 6 : jsDay - 1
+      const currentPlan = BASE_WEEK.map((d, i) => ({
+        ...d, done: i < todayIdx ? false : (i === todayIdx && doneCount === WORKOUT_PLAN.length),
+      }))
+      const missedDays = BASE_WEEK.filter((d, i) => i < todayIdx && !d.type.toLowerCase().includes('descanso')).map(d => `${d.day}: ${d.type}`)
+      const remainingDays = WEEK_DAYS.slice(todayIdx)
+      const goalMap: Record<string,string> = { lose_weight:'Bajar de peso', gain_muscle:'Ganar músculo', health:'Salud general' }
+      const res = await adjustWorkout({
+        currentPlan,
+        missedDays,
+        remainingDays,
+        goal: profile.goal ? goalMap[profile.goal] : undefined,
+        level: profile.level,
+        daysPerWeek: profile.daysPerWeek,
+      })
+      setAdjustedPlan(res)
+    } catch {
+      setAdjustError('No se pudo recalcular. Intenta de nuevo.')
+    } finally {
+      setAdjusting(false)
+    }
   }
 
   const handleTabClick = (id: Tab) => {
@@ -401,23 +448,101 @@ export default function Dashboard() {
 
       {/* Weekly plan */}
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-        <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Plan semanal</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Plan semanal</p>
+          <button onClick={handleAdjustWorkout} disabled={adjusting}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg font-mono text-xs active:scale-95 transition-transform"
+            style={{ background:`${accentColor}18`, color:accentColor, border:`1px solid ${accentColor}44` }}>
+            {adjusting ? (
+              <><span className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin" style={{borderColor:accentColor, borderTopColor:'transparent'}}/> Recalculando…</>
+            ) : '✨ Recalcular con IA'}
+          </button>
+        </div>
+
         <div className="space-y-2">
-          {[
-            { day:'Lun', type:'Fuerza — Tren superior',    done: doneCount === WORKOUT_PLAN.length },
-            { day:'Mar', type:'Cardio — HIIT 30 min',       done: false },
-            { day:'Mié', type:'Fuerza — Tren inferior',    done: false },
-            { day:'Jue', type:'Descanso activo',            done: false },
-            { day:'Vie', type:'Fuerza — Full body',         done: false },
-            { day:'Sáb', type:'Cardio — Larga distancia',  done: false },
-            { day:'Dom', type:'Descanso',                   done: false },
-          ].map(d => (
-            <div key={d.day} className="flex items-center gap-3 py-1.5">
-              <p className="font-mono text-xs w-8 text-gray-500">{d.day}</p>
-              <p className={`flex-1 font-body text-sm ${d.done ? 'text-gray-600 line-through' : 'text-white'}`}>{d.type}</p>
-              {d.done && <span className="text-xs" style={{ color:accentColor }}>✓</span>}
+          {BASE_WEEK.map((d, i) => {
+            const jsDay = new Date().getDay(); const todayIdx = jsDay === 0 ? 6 : jsDay - 1
+            const isToday = i === todayIdx
+            const done = isToday && doneCount === WORKOUT_PLAN.length
+            return (
+              <div key={d.day} className="flex items-center gap-3 py-1.5">
+                <p className="font-mono text-xs w-8" style={{ color: isToday ? accentColor : '#555' }}>{d.day}</p>
+                <p className={`flex-1 font-body text-sm ${done ? 'text-gray-600 line-through' : isToday ? 'text-white font-semibold' : 'text-white'}`}>{d.type}</p>
+                {done && <span className="text-xs" style={{ color:accentColor }}>✓</span>}
+                {isToday && !done && <span className="font-mono text-xs px-1.5 py-0.5 rounded" style={{background:`${accentColor}22`, color:accentColor, fontSize:'9px'}}>HOY</span>}
+              </div>
+            )
+          })}
+        </div>
+
+        {adjustError && <p className="text-spartan text-xs font-mono mt-3">{adjustError}</p>}
+
+        {/* AI adjusted plan result */}
+        {adjustedPlan && (
+          <div className="mt-3 pt-3 border-t border-gray-800">
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-sm">✨</span>
+              <p className="font-mono text-xs uppercase tracking-widest" style={{color:accentColor}}>Plan recalculado</p>
             </div>
-          ))}
+            <p className="text-gray-400 text-xs font-body italic mb-3 leading-relaxed">"{adjustedPlan.resumen}"</p>
+            <div className="space-y-1.5">
+              {adjustedPlan.plan.map((p, i) => (
+                <div key={i} className="rounded-lg px-3 py-2" style={{background:'#1C1F28'}}>
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono text-xs w-8" style={{color:accentColor}}>{p.day}</p>
+                    <p className="flex-1 text-white font-body text-sm">{p.type}</p>
+                  </div>
+                  {p.muscles && p.muscles.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5 ml-10">
+                      {p.muscles.map(m => (
+                        <span key={m} className="font-mono px-1.5 py-0.5 rounded" style={{background:`${accentColor}18`, color:accentColor, fontSize:'9px'}}>{m}</span>
+                      ))}
+                    </div>
+                  )}
+                  {p.note && <p className="text-gray-600 text-xs font-mono mt-1 ml-10">{p.note}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Exercise library by muscle group */}
+      <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+        <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Biblioteca de ejercicios</p>
+        <div className="space-y-2">
+          {MUSCLE_GROUPS.map(mg => {
+            const list = exercisesByMuscle(mg.id)
+            const isOpen = openMuscle === mg.id
+            return (
+              <div key={mg.id} className="rounded-xl overflow-hidden" style={{background:'#1C1F28'}}>
+                <button onClick={() => setOpenMuscle(isOpen ? null : mg.id)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left active:scale-98 transition-transform">
+                  <span className="text-lg">{mg.emoji}</span>
+                  <p className="flex-1 text-white font-display font-bold text-sm">{mg.id}</p>
+                  <span className="font-mono text-xs text-gray-600">{list.length} ejercicios</span>
+                  <svg style={{transform: isOpen?'rotate(90deg)':'rotate(0)'}} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+                {isOpen && (
+                  <div className="px-3 pb-3 pt-1 space-y-2 border-t border-gray-800">
+                    {list.map(ex => (
+                      <div key={ex.id} className="rounded-lg px-3 py-2" style={{background:'#252933'}}>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <p className="text-white font-body text-sm font-medium">{ex.name}</p>
+                          <span className="font-mono text-xs" style={{color:accentColor}}>{ex.sets}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono px-1.5 py-0.5 rounded" style={{background:'#1C1F28', color:'#888', fontSize:'9px'}}>{ex.equipment === 'ninguno' ? 'sin equipo' : ex.equipment}</span>
+                          <span className="font-mono px-1.5 py-0.5 rounded" style={{background:'#1C1F28', color:'#888', fontSize:'9px'}}>{ex.level}</span>
+                        </div>
+                        <p className="text-gray-500 text-xs font-body leading-relaxed">💡 {ex.tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </>

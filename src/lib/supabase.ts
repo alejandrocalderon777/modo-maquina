@@ -47,3 +47,22 @@ export async function lookupFoodAI(query: string): Promise<AIFood[]> {
   if (error) throw error
   return data?.resultados || []
 }
+
+export interface AdjustedPlan {
+  plan: { day: string; type: string; muscles: string[]; note: string }[]
+  resumen: string
+}
+
+export async function adjustWorkout(params: {
+  currentPlan: { day: string; type: string; done: boolean }[]
+  missedDays: string[]
+  remainingDays: string[]
+  goal?: string
+  level?: string
+  daysPerWeek?: number
+}): Promise<AdjustedPlan> {
+  const { data, error } = await supabase.functions.invoke('adjust-workout', { body: params })
+  if (error) throw error
+  if (data?.error) throw new Error(data.error)
+  return data
+}
