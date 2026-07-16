@@ -8,7 +8,7 @@ import { RECIPES, filterRecipes, type Recipe } from '../assets/recipes'
 import type { MealType, FoodEntry } from '../types'
 
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'))
-import { analyzePlate, generateRecipe } from '../lib/supabase'
+import { analyzePlate, generateRecipe, lookupFoodAI, type AIFood } from '../lib/supabase'
 import { PlateCamera } from '../components/PlateCamera'
 
 const MEAL_LABELS: Record<MealType, string> = { breakfast:'Desayuno', lunch:'Almuerzo', dinner:'Cena', snack:'Snack' }
@@ -35,6 +35,8 @@ export default function FoodLog() {
   const [query, setQuery] = useState('')
   const [onlineResults, setOnlineResults] = useState<OFFProduct[]>([])
   const [onlineSearching, setOnlineSearching] = useState(false)
+  const [aiFoods, setAiFoods] = useState<AIFood[]>([])
+  const [aiFoodSearching, setAiFoodSearching] = useState(false)
   const [activeMeal, setActiveMeal] = useState<MealType>('lunch')
   const [selected, setSelected] = useState<SelectedFood | null>(null)
   const [grams, setGrams] = useState('')
@@ -128,7 +130,14 @@ export default function FoodLog() {
   // ── Grouped foods ───────────────────────────────────────────
   const groupedFoods = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const filtered = q ? FOODS.filter(f => f.name.toLowerCase().includes(q) || f.category.toLowerCase().includes(q)) : FOODS
+    // Token-based: every word in query must appear in name or category
+    const words = q.split(/\s+/).filter(Boolean)
+    const filtered = q
+      ? FOODS.filter(f => {
+          const hay = (f.name + ' ' + f.category).toLowerCase()
+          return words.every(w => hay.includes(w))
+        })
+      : FOODS
     const groups: Record<string, FoodItem[]> = {}
     for (const f of filtered) {
       if (!groups[f.category]) groups[f.category] = []
@@ -160,6 +169,21 @@ export default function FoodLog() {
     }, 500)
     return () => clearTimeout(timer)
   }, [query, activeCard])
+
+  // Reset AI foods when query changes
+  useEffect(() => { setAiFoods([]) }, [query])
+
+  const handleAIFoodSearch = async () => {
+    setAiFoodSearching(true)
+    try {
+      const res = await lookupFoodAI(query.trim())
+      setAiFoods(res)
+    } catch {
+      setAiFoods([])
+    } finally {
+      setAiFoodSearching(false)
+    }
+  }
 
   const handleGenerateRecipe = async () => {
     setAiGenerating(true)
@@ -475,6 +499,57 @@ export default function FoodLog() {
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* ── AI food lookup ── */}
+              {query.trim().length >= 2 && (
+                <div className="mb-3">
+                  {aiFoods.length === 0 && !aiFoodSearching && (
+                    <button onClick={handleAIFoodSearch}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl active:scale-98 transition-transform"
+                      style={{background:`linear-gradient(135deg, #6FD3E818, #CEFF3C10)`, border:'1px solid #6FD3E833'}}>
+                      <span className="text-base">✨</span>
+                      <span className="text-white font-display font-bold text-sm">Buscar "{query.trim()}" con IA</span>
+                    </button>
+                  )}
+
+                  {aiFoodSearching && (
+                    <div className="flex items-center justify-center gap-2 py-3">
+                      <span className="w-4 h-4 border-2 border-viking border-t-transparent rounded-full animate-spin"/>
+                      <span className="font-mono text-xs" style={{color:'#6FD3E8'}}>Consultando IA nutricional…</span>
+                    </div>
+                  )}
+
+                  {aiFoods.length > 0 && (
+                    <>
+                      <div className="flex items-center gap-1.5 mb-1.5 px-1">
+                        <span className="text-base">✨</span>
+                        <p className="font-mono text-xs uppercase tracking-widest" style={{color:'#6FD3E8'}}>Estimado por IA</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {aiFoods.map((f, i)=>(
+                          <button key={`ai-${i}`}
+                            onClick={()=>{
+                              const prod: OFFProduct = {
+                                name: f.nombre, brand: 'IA · por 100g',
+                                cal: f.cal, prot: f.prot, carbs: f.carbs, fat: f.fat,
+                                serving: 100, unit: f.unidad === 'ml' ? 'ml' : 'g',
+                              }
+                              setSelected({source:'barcode',item:prod}); setGrams('100'); setScanState('confirm')
+                            }}
+                            className="flex flex-col justify-between p-3 rounded-xl text-left active:scale-95 transition-transform"
+                            style={{background:'#252933', border:'1px solid #6FD3E830'}}>
+                            <p className="text-white font-body text-xs font-semibold leading-tight mb-2">{f.nombre}</p>
+                            <div>
+                              <p className="text-volt font-display font-black text-base">{f.cal}<span className="text-xs font-mono text-gray-500 ml-1">kcal</span></p>
+                              <p className="text-gray-600 text-xs font-mono">100{f.unidad} · {f.prot}g P</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

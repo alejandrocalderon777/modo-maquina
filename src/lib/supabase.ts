@@ -35,3 +35,15 @@ export async function generateRecipe(params: {
   if (data?.error) throw new Error(data.error)
   return data
 }
+
+export interface AIFood {
+  nombre: string; cal: number; prot: number; carbs: number; fat: number; unidad: string
+}
+
+export async function lookupFoodAI(query: string): Promise<AIFood[]> {
+  const { data, error } = await supabase.functions.invoke('lookup-food', {
+    body: { query },
+  })
+  if (error) throw error
+  return data?.resultados || []
+}
