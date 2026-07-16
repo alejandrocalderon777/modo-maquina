@@ -4,7 +4,7 @@ import { useAppStore } from '../store/useAppStore'
 import { LINEAGES, LINEAGE_COACH_PHRASES } from '../assets/data'
 import { MUSCLE_GROUPS, exercisesByMuscle, exerciseImages, type MuscleGroup } from '../assets/exercises'
 import { ExerciseImage } from '../components/ExerciseImage'
-import { adjustWorkout, type AdjustedPlan } from '../lib/supabase'
+import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
 import type { Emotion } from '../types'
 
@@ -86,6 +86,14 @@ export default function Dashboard() {
   const [adjusting, setAdjusting] = useState(false)
   const [adjustedPlan, setAdjustedPlan] = useState<AdjustedPlan | null>(null)
   const [adjustError, setAdjustError] = useState('')
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  useEffect(() => { getSession().then(s => setUserEmail(s?.user?.email ?? null)) }, [])
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/auth')
+  }
 
   // Workout state from store (persists across renders)
   const todayDone = workoutCompletions[todayStr] || []
@@ -1091,6 +1099,46 @@ export default function Dashboard() {
             <p className="font-mono text-xs text-gray-500 mt-1">{s.l}</p>
           </div>
         ))}
+      </div>
+
+      {/* Cuenta */}
+      <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+        <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Cuenta</p>
+        {userEmail ? (
+          <>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background:`${accentColor}22` }}>
+                <span style={{ color:accentColor }}>✓</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-body text-sm truncate">{userEmail}</p>
+                <p className="font-mono text-xs" style={{ color:accentColor }}>Datos respaldados en la nube</p>
+              </div>
+            </div>
+            <button onClick={handleSignOut}
+              className="w-full py-2.5 rounded-xl font-mono text-xs uppercase tracking-widest"
+              style={{ background:'#1C1F28', color:'#888', border:'1px solid #252933' }}>
+              Cerrar sesión
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background:'#DE782C22' }}>
+                <span style={{ color:'#DE782C' }}>!</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-white font-body text-sm">Modo invitado</p>
+                <p className="font-mono text-xs text-gray-500">Tus datos solo están en este dispositivo</p>
+              </div>
+            </div>
+            <button onClick={() => navigate('/auth')}
+              className="w-full py-2.5 rounded-xl font-display font-bold text-sm"
+              style={{ background:accentColor, color:'#111318' }}>
+              Crear cuenta y respaldar
+            </button>
+          </>
+        )}
       </div>
     </>
   )
