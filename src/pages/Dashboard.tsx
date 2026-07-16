@@ -465,272 +465,321 @@ export default function Dashboard() {
         })}
       </div>
 
+      {/* ── helper: score combinado del día 0-100 ── */}
+      {(() => { return null })()}
+
       {/* ── DÍA ── */}
-      {progressPeriod === 'day' && (
-        <>
-          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Macros de hoy</p>
-            <div className="space-y-3">
-              {[
-                { l:'Calorías', v:macros.calories.consumed, t:macros.calories.target, u:'kcal', c:'#CEFF3C' },
-                { l:'Proteína', v:macros.protein.consumed,  t:macros.protein.target,  u:'g',    c:'#E23A2E' },
-                { l:'Carbos',   v:macros.carbs.consumed,    t:macros.carbs.target,    u:'g',    c:'#6FD3E8' },
-                { l:'Grasas',   v:macros.fat.consumed,      t:macros.fat.target,      u:'g',    c:'#DE782C' },
-              ].map(m => {
-                const pct = Math.min(100, Math.round((m.v / m.t) * 100))
+      {progressPeriod === 'day' && (() => {
+        const calPct   = Math.min(100, Math.round((macros.calories.consumed / macros.calories.target) * 100))
+        const exPct    = WORKOUT_PLAN.length > 0 ? Math.round((doneCount / WORKOUT_PLAN.length) * 100) : 0
+        const combined = Math.round((calPct + exPct) / 2)
+        const scoreColor = combined >= 80 ? accentColor : combined >= 40 ? '#DE782C' : '#E23A2E'
+        return (
+          <>
+            {/* Score combinado del día */}
+            <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+              <div className="flex items-center justify-between mb-4">
+                <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Cumplimiento · hoy</p>
+                <span className="font-display font-black text-2xl" style={{ color:scoreColor }}>{combined}%</span>
+              </div>
+              {/* Dos barras principales: alimentación + ejercicio */}
+              <div className="space-y-3 mb-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="font-mono text-xs text-gray-400">🍽️ Alimentación</p>
+                    <p className="font-mono text-xs" style={{ color:accentColor }}>{calPct}%</p>
+                  </div>
+                  <div className="h-3 rounded-full bg-gray-800 overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width:`${calPct}%`, background:accentColor }} />
+                  </div>
+                  <p className="font-mono text-xs text-gray-600 mt-1">{macros.calories.consumed}/{macros.calories.target} kcal</p>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="font-mono text-xs text-gray-400">🏋️ Ejercicio</p>
+                    <p className="font-mono text-xs" style={{ color:'#6FD3E8' }}>{exPct}%</p>
+                  </div>
+                  <div className="h-3 rounded-full bg-gray-800 overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width:`${exPct}%`, background:'#6FD3E8' }} />
+                  </div>
+                  <p className="font-mono text-xs text-gray-600 mt-1">{doneCount}/{WORKOUT_PLAN.length} ejercicios completados</p>
+                </div>
+              </div>
+              {/* Detalle macros */}
+              <div className="pt-3 border-t border-gray-800 space-y-2">
+                {[
+                  { l:'Proteína', v:macros.protein.consumed, t:macros.protein.target, u:'g', c:'#E23A2E' },
+                  { l:'Carbos',   v:macros.carbs.consumed,   t:macros.carbs.target,   u:'g', c:'#6FD3E8' },
+                  { l:'Grasas',   v:macros.fat.consumed,     t:macros.fat.target,     u:'g', c:'#DE782C' },
+                  { l:'💧 Agua',  v:macros.water.consumed,   t:macros.water.target,   u:'ml',c:'#6FD3E8' },
+                ].map(m => {
+                  const p = Math.min(100, Math.round((m.v/m.t)*100))
+                  return (
+                    <div key={m.l} className="flex items-center gap-2">
+                      <p className="font-mono text-xs text-gray-600 w-16 flex-shrink-0">{m.l}</p>
+                      <div className="flex-1 h-1.5 rounded-full bg-gray-800 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width:`${p}%`, background:m.c }} />
+                      </div>
+                      <p className="font-mono text-xs w-16 text-right flex-shrink-0" style={{ color:m.c }}>{m.v}/{m.t}{m.u}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            {/* Lista de ejercicios */}
+            <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+              <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Ejercicios · hoy</p>
+              {WORKOUT_PLAN.map(w => {
+                const done = todayDone.includes(w.name)
                 return (
-                  <div key={m.l}>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-mono text-xs text-gray-400">{m.l}</p>
-                      <p className="font-mono text-xs" style={{ color:m.c }}>{m.v}/{m.t}{m.u} · {pct}%</p>
+                  <div key={w.name} className="flex items-center gap-3 py-2 border-b border-gray-800 last:border-0">
+                    <div className="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0"
+                      style={{ borderColor:done ? '#6FD3E8' : '#333', background:done ? '#6FD3E8' : 'transparent' }}>
+                      {done && <span className="text-carbon font-black" style={{ fontSize:'9px', color:'#111318' }}>✓</span>}
                     </div>
-                    <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width:`${pct}%`, background:m.c }} />
-                    </div>
+                    <p className={`flex-1 font-body text-sm ${done ? 'line-through text-gray-600' : 'text-white'}`}>{w.name}</p>
+                    <p className="font-mono text-xs text-gray-600">{w.sets}</p>
                   </div>
                 )
               })}
-            </div>
-            <div className="mt-4 pt-3 border-t border-gray-800">
-              <div className="flex items-center justify-between mb-1">
-                <p className="font-mono text-xs text-gray-400">💧 Agua</p>
-                <p className="font-mono text-xs" style={{ color:'#6FD3E8' }}>{macros.water.consumed}/{macros.water.target}ml</p>
-              </div>
-              <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
-                <div className="h-full rounded-full" style={{ width:`${Math.min(100,Math.round((macros.water.consumed/macros.water.target)*100))}%`, background:'#6FD3E8' }} />
+              <div className="mt-2 pt-2 flex justify-end">
+                <p className="font-mono text-xs" style={{ color:accentColor }}>+{doneCount*25} XP ganados</p>
               </div>
             </div>
-          </div>
-          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Entreno de hoy</p>
-            {WORKOUT_PLAN.map(w => {
-              const done = todayDone.includes(w.name)
-              return (
-                <div key={w.name} className="flex items-center gap-3 py-2 border-b border-gray-800 last:border-0">
-                  <div className="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0"
-                    style={{ borderColor: done ? accentColor : '#333', background: done ? accentColor : 'transparent' }}>
-                    {done && <span className="text-carbon text-xs font-black" style={{ fontSize:'9px' }}>✓</span>}
-                  </div>
-                  <p className={`flex-1 font-body text-sm ${done ? 'line-through text-gray-600' : 'text-white'}`}>{w.name}</p>
-                  <p className="font-mono text-xs text-gray-600">{w.sets}</p>
-                </div>
-              )
-            })}
-            <div className="mt-3 pt-2 flex items-center justify-between">
-              <p className="font-mono text-xs text-gray-600">{doneCount}/{WORKOUT_PLAN.length} completados</p>
-              <p className="font-mono text-xs" style={{ color:accentColor }}>+{doneCount*25} XP</p>
-            </div>
-          </div>
-        </>
-      )}
+          </>
+        )
+      })()}
 
       {/* ── SEMANA ── */}
-      {progressPeriod === 'week' && (
-        <>
-          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Calorías · 7 días</p>
-              <p className="font-mono text-xs" style={{ color:accentColor }}>meta {macros.calories.target} kcal</p>
-            </div>
-            <div className="space-y-2">
-              {last7.map(date => {
-                const cal = dayCal(date)
-                const pct = maxCalWeek > 0 ? (cal / maxCalWeek) * 100 : 0
-                const onTarget = cal >= macros.calories.target * 0.85
-                const isToday = date === todayStr
-                const color = isToday ? '#6FD3E8' : onTarget ? accentColor : cal === 0 ? '#252933' : '#DE782C'
-                return (
-                  <div key={date} className="flex items-center gap-2">
-                    <p className="font-mono text-xs w-8 flex-shrink-0" style={{ color: isToday ? '#6FD3E8' : '#555' }}>
-                      {isToday ? 'Hoy' : dayLabel(date)}
-                    </p>
-                    <div className="flex-1 h-5 rounded-md bg-gray-800 overflow-hidden">
-                      {cal > 0 && <div className="h-full rounded-md transition-all" style={{ width:`${pct}%`, background:color }} />}
+      {progressPeriod === 'week' && (() => {
+        const weekFoodDays = last7.filter(d => dayHasFood(d)).length
+        const weekExDays   = last7.filter(d => dayExDone(d) > 0).length
+        const weekBothDays = last7.filter(d => dayHasFood(d) && dayExDone(d) > 0).length
+        return (
+          <>
+            {/* Cumplimiento por día — alimentación + ejercicio juntos */}
+            <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+              <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Cumplimiento · 7 días</p>
+              {/* Encabezado columnas */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 flex-shrink-0" />
+                <p className="font-mono text-center flex-1" style={{ fontSize:'8px', color:'#CEFF3C' }}>🍽 Aliment.</p>
+                <p className="font-mono text-center flex-1" style={{ fontSize:'8px', color:'#6FD3E8' }}>🏋 Ejercicio</p>
+                <div className="w-8 flex-shrink-0" />
+              </div>
+              <div className="space-y-2">
+                {last7.map(date => {
+                  const cal      = dayCal(date)
+                  const calPct   = Math.min(100, macros.calories.target > 0 ? Math.round((cal / macros.calories.target) * 100) : 0)
+                  const exCount  = dayExDone(date)
+                  const exPct    = WORKOUT_PLAN.length > 0 ? Math.round((exCount / WORKOUT_PLAN.length) * 100) : 0
+                  const combined = Math.round((calPct + exPct) / 2)
+                  const isToday  = date === todayStr
+                  const scoreColor = combined >= 80 ? accentColor : combined >= 40 ? '#DE782C' : combined === 0 ? '#333' : '#E23A2E'
+                  return (
+                    <div key={date} className="flex items-center gap-2">
+                      <p className="font-mono text-xs w-8 flex-shrink-0" style={{ color: isToday ? '#6FD3E8' : '#555' }}>
+                        {isToday ? 'Hoy' : dayLabel(date)}
+                      </p>
+                      {/* Barra alimentación */}
+                      <div className="flex-1 h-4 rounded bg-gray-800 overflow-hidden">
+                        {calPct > 0 && <div className="h-full rounded transition-all" style={{ width:`${calPct}%`, background: isToday ? '#CEFF3C88' : accentColor }} />}
+                      </div>
+                      {/* Barra ejercicio */}
+                      <div className="flex-1 h-4 rounded bg-gray-800 overflow-hidden">
+                        {exPct > 0 && <div className="h-full rounded transition-all" style={{ width:`${exPct}%`, background: isToday ? '#6FD3E888' : '#6FD3E8' }} />}
+                      </div>
+                      {/* Score combinado */}
+                      <p className="font-mono text-xs w-8 text-right flex-shrink-0" style={{ color: scoreColor }}>
+                        {combined === 0 ? '—' : `${combined}%`}
+                      </p>
                     </div>
-                    <p className="font-mono text-xs w-14 text-right flex-shrink-0" style={{ color: cal === 0 ? '#333' : color }}>
-                      {cal === 0 ? '—' : `${Math.round(cal)} kcal`}
-                    </p>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
-          </div>
-
-          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Proteína · 7 días</p>
-              <p className="font-mono text-xs" style={{ color:'#E23A2E' }}>meta {macros.protein.target}g</p>
-            </div>
-            <div className="space-y-2">
-              {last7.map(date => {
-                const prot = Math.round(dayProt(date))
-                const pct = maxProtWeek > 0 ? (prot / maxProtWeek) * 100 : 0
-                const isToday = date === todayStr
-                const color = isToday ? '#6FD3E8' : '#E23A2E'
-                return (
-                  <div key={date} className="flex items-center gap-2">
-                    <p className="font-mono text-xs w-8 flex-shrink-0" style={{ color: isToday ? '#6FD3E8' : '#555' }}>
-                      {isToday ? 'Hoy' : dayLabel(date)}
-                    </p>
-                    <div className="flex-1 h-5 rounded-md bg-gray-800 overflow-hidden">
-                      {prot > 0 && <div className="h-full rounded-md" style={{ width:`${pct}%`, background:color }} />}
-                    </div>
-                    <p className="font-mono text-xs w-10 text-right flex-shrink-0" style={{ color: prot === 0 ? '#333' : color }}>
-                      {prot === 0 ? '—' : `${prot}g`}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Consistencia · 7 días</p>
-            <div className="flex gap-2">
-              {last7.map(date => {
-                const exDone = dayExDone(date) > 0
-                const hasFood = dayHasFood(date)
-                const isToday = date === todayStr
-                const bg = exDone && hasFood ? accentColor
-                  : exDone ? '#6FD3E8'
-                  : hasFood ? '#DE782C'
-                  : '#252933'
-                return (
-                  <div key={date} className="flex-1 flex flex-col items-center gap-1.5">
-                    <div className="w-full aspect-square rounded-lg" style={{ background: bg }} />
-                    <p className="font-mono text-center" style={{ fontSize:'8px', color: isToday ? '#6FD3E8' : '#555' }}>
-                      {isToday ? 'hoy' : dayLabel(date)}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="flex items-center gap-4 mt-3 pt-2 border-t border-gray-800">
+            {/* Resumen semanal */}
+            <div className="mx-4 mb-4 grid grid-cols-2 gap-3">
               {[
-                { c:accentColor, l:'Completo' },
-                { c:'#6FD3E8',   l:'Solo entreno' },
-                { c:'#DE782C',   l:'Solo comida' },
-                { c:'#252933',   l:'Descanso' },
+                { l:'Días completos', v:`${weekBothDays}`, u:'/7', c:accentColor },
+                { l:'Días con comida', v:`${weekFoodDays}`, u:'/7', c:'#E23A2E' },
+                { l:'Días con entreno', v:`${weekExDays}`, u:'/7', c:'#6FD3E8' },
+                { l:'Consistencia', v:`${Math.round(weekBothDays/7*100)}`, u:'%', c:'#DE782C' },
               ].map(s => (
-                <div key={s.l} className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded" style={{ background:s.c }} />
-                  <p className="font-mono text-gray-600" style={{ fontSize:'8px' }}>{s.l}</p>
+                <div key={s.l} className="rounded-xl p-3" style={{ background:'#1C1F28' }}>
+                  <p className="font-display font-black text-2xl" style={{ color:s.c }}>
+                    {s.v}<span className="text-sm font-mono text-gray-500">{s.u}</span>
+                  </p>
+                  <p className="font-mono text-xs text-gray-500 mt-0.5">{s.l}</p>
                 </div>
               ))}
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )
+      })()}
 
       {/* ── MES ── */}
-      {progressPeriod === 'month' && (
-        <>
-          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Actividad · 30 días</p>
-            <div className="grid gap-1.5" style={{ gridTemplateColumns:'repeat(7, 1fr)' }}>
-              {last30.map(date => {
-                const exDone = dayExDone(date)
-                const hasFood = dayHasFood(date)
-                const isToday = date === todayStr
-                const bg = exDone > 0 && hasFood ? accentColor
-                  : exDone > 0 ? '#6FD3E8'
-                  : hasFood ? `${accentColor}55`
-                  : '#1C1F28'
-                return (
-                  <div key={date} title={dayMonthLabel(date)}
-                    className="rounded"
-                    style={{ background:bg, aspectRatio:'1', border: isToday ? `1px solid ${accentColor}` : '1px solid transparent' }} />
-                )
-              })}
+      {progressPeriod === 'month' && (() => {
+        const monthBoth  = last30.filter(d => dayHasFood(d) && dayExDone(d) > 0).length
+        const monthFood  = last30.filter(d => dayHasFood(d)).length
+        const monthEx    = last30.filter(d => dayExDone(d) > 0).length
+        const adherencia = Math.round(monthBoth / 30 * 100)
+        return (
+          <>
+            {/* Resumen rápido */}
+            <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Cumplimiento · 30 días</p>
+                <span className="font-display font-black text-xl" style={{ color: adherencia >= 60 ? accentColor : '#DE782C' }}>{adherencia}%</span>
+              </div>
+              {/* Dos barras: alimentación y ejercicio */}
+              <div className="space-y-3 mb-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-mono text-xs text-gray-400">🍽️ Alimentación</p>
+                    <p className="font-mono text-xs" style={{ color:accentColor }}>{monthFood}/30 días</p>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width:`${Math.round(monthFood/30*100)}%`, background:accentColor }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-mono text-xs text-gray-400">🏋️ Ejercicio</p>
+                    <p className="font-mono text-xs" style={{ color:'#6FD3E8' }}>{monthEx}/30 días</p>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width:`${Math.round(monthEx/30*100)}%`, background:'#6FD3E8' }} />
+                  </div>
+                </div>
+              </div>
+              {/* Heatmap */}
+              <p className="font-mono text-xs text-gray-600 mb-2" style={{ fontSize:'9px' }}>ACTIVIDAD DIARIA</p>
+              <div className="grid gap-1" style={{ gridTemplateColumns:'repeat(7, 1fr)' }}>
+                {last30.map(date => {
+                  const hasFood = dayHasFood(date)
+                  const hasEx   = dayExDone(date) > 0
+                  const isToday = date === todayStr
+                  const bg = hasFood && hasEx ? accentColor
+                    : hasEx   ? '#6FD3E8'
+                    : hasFood ? `${accentColor}55`
+                    : '#1C1F28'
+                  return (
+                    <div key={date} style={{ background:bg, aspectRatio:'1', borderRadius:'3px',
+                      border: isToday ? `1px solid ${accentColor}` : '1px solid transparent' }} />
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                {[
+                  { c:accentColor,         l:'Ambos' },
+                  { c:'#6FD3E8',           l:'Solo entreno' },
+                  { c:`${accentColor}55`,  l:'Solo comida' },
+                  { c:'#1C1F28',           l:'Descanso' },
+                ].map(s => (
+                  <div key={s.l} className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded" style={{ background:s.c, border:'1px solid #333' }} />
+                    <p className="font-mono text-gray-600" style={{ fontSize:'8px' }}>{s.l}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-4 mt-3 pt-2 border-t border-gray-800">
+            <div className="mx-4 mb-4 grid grid-cols-2 gap-3">
               {[
-                { c:accentColor, l:'Entreno + comida' },
-                { c:'#6FD3E8',   l:'Solo entreno' },
-                { c:`${accentColor}55`, l:'Solo comida' },
+                { l:'Días con ambos', v:`${monthBoth}`, u:'/30', c:accentColor },
+                { l:'Racha actual', v:`${streakDays}`, u:'d', c:'#DE782C' },
+                { l:'Solo comida', v:`${monthFood - monthBoth}`, u:'d', c:'#E23A2E' },
+                { l:'Solo entreno', v:`${monthEx - monthBoth}`, u:'d', c:'#6FD3E8' },
               ].map(s => (
-                <div key={s.l} className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded" style={{ background:s.c }} />
-                  <p className="font-mono text-gray-600" style={{ fontSize:'8px' }}>{s.l}</p>
+                <div key={s.l} className="rounded-xl p-3" style={{ background:'#1C1F28' }}>
+                  <p className="font-display font-black text-2xl" style={{ color:s.c }}>
+                    {s.v}<span className="text-sm font-mono text-gray-500">{s.u}</span>
+                  </p>
+                  <p className="font-mono text-xs text-gray-500 mt-0.5">{s.l}</p>
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="mx-4 mb-4 grid grid-cols-2 gap-3">
-            {[
-              { l:'Días activos', v:`${last30.filter(d => dayExDone(d) > 0 || dayHasFood(d)).length}`, u:'/30', c:accentColor },
-              { l:'Días con entreno', v:`${last30.filter(d => dayExDone(d) > 0).length}`, u:'/30', c:'#6FD3E8' },
-              { l:'Días con comida', v:`${last30.filter(d => dayHasFood(d)).length}`, u:'/30', c:'#E23A2E' },
-              { l:'Racha actual', v:`${streakDays}`, u:' días', c:'#DE782C' },
-            ].map(s => (
-              <div key={s.l} className="rounded-xl p-3" style={{ background:'#1C1F28' }}>
-                <p className="font-display font-black text-2xl" style={{ color:s.c }}>
-                  {s.v}<span className="text-sm font-mono text-gray-500">{s.u}</span>
-                </p>
-                <p className="font-mono text-xs text-gray-500 mt-0.5">{s.l}</p>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+          </>
+        )
+      })()}
 
       {/* ── AÑO ── */}
-      {progressPeriod === 'year' && (
-        <>
-          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-4">Adherencia global</p>
-            <div className="flex justify-around">
-              {(() => {
-                const daysSince = Math.max(1, Math.round((Date.now() - new Date(Math.min(...foodLog.map(e => new Date(e.date).getTime()), Date.now())).getTime()) / 86400000))
-                const wodPct  = Math.min(100, Math.round((allWodDates.length / daysSince) * 100))
-                const foodPct = Math.min(100, Math.round((allDates.length / daysSince) * 100))
-                const items = [
-                  { label:'Entrenos', pct:wodPct,  color:'#CEFF3C' },
-                  { label:'Nutrición', pct:foodPct, color:'#E23A2E' },
-                  { label:'Racha', pct:Math.min(100, streakDays * 3), color:'#6FD3E8' },
-                ]
-                return items.map(({ label, pct, color }) => {
-                  const size = 80
-                  const r = (size - 10) / 2
-                  const circ = 2 * Math.PI * r
-                  const offset = circ * (1 - pct / 100)
+      {progressPeriod === 'year' && (() => {
+        const daysSince = Math.max(1, Math.round(
+          (Date.now() - new Date(foodLog.length > 0
+            ? Math.min(...foodLog.map(e => new Date(e.date).getTime()))
+            : Date.now()
+          ).getTime()) / 86400000
+        ))
+        const wodPct  = Math.min(100, Math.round((allWodDates.length / daysSince) * 100))
+        const foodPct = Math.min(100, Math.round((allDates.length / daysSince) * 100))
+        const bothDays = allDates.filter(d => allWodDates.includes(d)).length
+        const bothPct = Math.min(100, Math.round((bothDays / daysSince) * 100))
+        return (
+          <>
+            <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+              <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-4">Adherencia · desde el inicio</p>
+              <div className="flex justify-around mb-4">
+                {[
+                  { label:'Alimentación', pct:foodPct,  color:accentColor },
+                  { label:'Ejercicio',    pct:wodPct,   color:'#6FD3E8' },
+                  { label:'Ambos',        pct:bothPct,  color:'#DE782C' },
+                ].map(({ label, pct, color }) => {
+                  const size = 80; const r = (size-10)/2; const circ = 2*Math.PI*r
                   return (
                     <div key={label} className="flex flex-col items-center gap-2">
                       <div className="relative" style={{ width:size, height:size }}>
                         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
                           <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1C1F28" strokeWidth="9" />
                           <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="9"
-                            strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
+                            strokeLinecap="round" strokeDasharray={circ}
+                            strokeDashoffset={circ * (1 - pct/100)}
                             className="progress-ring-circle" />
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <div className="absolute inset-0 flex items-center justify-center">
                           <span className="font-mono font-bold text-lg" style={{ color }}>{pct}%</span>
                         </div>
                       </div>
-                      <p className="font-mono text-xs text-gray-400">{label}</p>
+                      <p className="font-mono text-xs text-gray-400 text-center">{label}</p>
                     </div>
                   )
-                })
-              })()}
-            </div>
-          </div>
-
-          <div className="mx-4 mb-4 grid grid-cols-2 gap-3">
-            {[
-              { l:'Sesiones totales', v:`${totalSessions}`, c:accentColor },
-              { l:'Días con registro', v:`${totalNutritionDays}`, c:'#E23A2E' },
-              { l:'Racha máxima', v:`${streakDays}d`, c:'#6FD3E8' },
-              { l:'XP acumulados', v:`${xpPoints}`, c:'#DE782C' },
-            ].map(s => (
-              <div key={s.l} className="rounded-xl p-3" style={{ background:'#1C1F28' }}>
-                <p className="font-display font-black text-2xl" style={{ color:s.c }}>{s.v}</p>
-                <p className="font-mono text-xs text-gray-500 mt-0.5">{s.l}</p>
+                })}
               </div>
-            ))}
-          </div>
-        </>
-      )}
+              {/* Barras de cumplimiento acumulado */}
+              <div className="pt-3 border-t border-gray-800 space-y-2">
+                {[
+                  { l:'🍽️ Días con comida registrada', v:allDates.length, t:daysSince, c:accentColor },
+                  { l:'🏋️ Días con entreno', v:allWodDates.length, t:daysSince, c:'#6FD3E8' },
+                  { l:'✅ Días con ambos cumplidos', v:bothDays, t:daysSince, c:'#DE782C' },
+                ].map(m => (
+                  <div key={m.l}>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-mono text-gray-500" style={{ fontSize:'9px' }}>{m.l}</p>
+                      <p className="font-mono text-xs" style={{ color:m.c }}>{m.v}/{m.t}d</p>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-gray-800 overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width:`${Math.round(m.v/m.t*100)}%`, background:m.c }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mx-4 mb-4 grid grid-cols-2 gap-3">
+              {[
+                { l:'Sesiones totales', v:`${totalSessions}`, c:'#6FD3E8' },
+                { l:'Días con registro', v:`${totalNutritionDays}`, c:accentColor },
+                { l:'Racha actual', v:`${streakDays}d`, c:'#DE782C' },
+                { l:'XP acumulados', v:`${xpPoints}`, c:'#E23A2E' },
+              ].map(s => (
+                <div key={s.l} className="rounded-xl p-3" style={{ background:'#1C1F28' }}>
+                  <p className="font-display font-black text-2xl" style={{ color:s.c }}>{s.v}</p>
+                  <p className="font-mono text-xs text-gray-500 mt-0.5">{s.l}</p>
+                </div>
+              ))}
+            </div>
+          </>
+        )
+      })()}
 
       {/* Medidas — siempre visible */}
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
