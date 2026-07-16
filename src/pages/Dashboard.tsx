@@ -982,19 +982,20 @@ export default function Dashboard() {
 
       {/* Shimeji avatar */}
       <ShimejiAvatar
-        avatarSrc={avatarSrc}
+        archetype={profile.archetype || 'fitness'}
         accentColor={accentColor}
         phrases={[
           '¡Vamos, dale!',
           '¡Tú puedes!',
-          '100% hoy 💪',
+          '100% hoy',
           '¡A comer bien!',
           '¡Sin excusas!',
           '¡Modo Máquina!',
           `+${doneCount * 25} XP`,
           '¡Racha activa!',
-          '¡Fuego! 🔥',
+          '¡Fuego!',
           '¡Eso es!',
+
         ]}
       />
 
