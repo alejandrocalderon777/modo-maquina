@@ -16,3 +16,22 @@ export async function analyzePlate(
   if (error) throw error
   return data
 }
+
+export interface GeneratedRecipe {
+  name: string; emoji: string; tag: string; time: number
+  cal: number; prot: number; carbs: number; fat: number
+  servings: number; category: 'Desayuno' | 'Almuerzo' | 'Cena' | 'Snack'
+  ingredients: { name: string; amount: string }[]
+  steps: string[]
+}
+
+export async function generateRecipe(params: {
+  prompt?: string; goal?: string; mealType?: string; ingredients?: string
+}): Promise<GeneratedRecipe> {
+  const { data, error } = await supabase.functions.invoke('generate-recipe', {
+    body: params,
+  })
+  if (error) throw error
+  if (data?.error) throw new Error(data.error)
+  return data
+}

@@ -8,7 +8,7 @@ import { RECIPES, filterRecipes, type Recipe } from '../assets/recipes'
 import type { MealType, FoodEntry } from '../types'
 
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'))
-import { analyzePlate } from '../lib/supabase'
+import { analyzePlate, generateRecipe } from '../lib/supabase'
 import { PlateCamera } from '../components/PlateCamera'
 
 const MEAL_LABELS: Record<MealType, string> = { breakfast:'Desayuno', lunch:'Almuerzo', dinner:'Cena', snack:'Snack' }
@@ -42,6 +42,11 @@ export default function FoodLog() {
   const [scannedCode, setScannedCode] = useState('')
   const [recipeCat, setRecipeCat] = useState('Todos')
   const [expandedRecipe, setExpandedRecipe] = useState<string | null>(null)
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiGenerating, setAiGenerating] = useState(false)
+  const [aiRecipe, setAiRecipe] = useState<Recipe | null>(null)
+  const [aiError, setAiError] = useState('')
+  const [showAiPanel, setShowAiPanel] = useState(false)
   const [added, setAdded] = useState<string | null>(null)
 
   // ── Plate photo state ────────────────────────────────────────
@@ -155,6 +160,26 @@ export default function FoodLog() {
     }, 500)
     return () => clearTimeout(timer)
   }, [query, activeCard])
+
+  const handleGenerateRecipe = async () => {
+    setAiGenerating(true)
+    setAiError('')
+    setAiRecipe(null)
+    try {
+      const goalMap: Record<string, string> = {
+        lose_weight: 'Bajar de peso', gain_muscle: 'Ganar músculo', health: 'Salud general'
+      }
+      const g = await generateRecipe({
+        prompt: aiPrompt.trim() || undefined,
+        goal: profile.goal ? goalMap[profile.goal] : undefined,
+      })
+      setAiRecipe({ ...g, id: `ai-${Date.now()}` })
+    } catch {
+      setAiError('No se pudo generar la receta. Intenta de nuevo.')
+    } finally {
+      setAiGenerating(false)
+    }
+  }
 
   // ── Barcode flow ─────────────────────────────────────────────
   const handleBarcode = async (code: string) => {
@@ -466,7 +491,7 @@ export default function FoodLog() {
             </div>
             <div className="flex-1">
               <p className="text-white font-display font-bold text-base">Recetas saludables</p>
-              <p className="text-gray-500 text-xs font-body mt-0.5">8 recetas con macros y preparación</p>
+              <p className="text-gray-500 text-xs font-body mt-0.5">28 recetas + generador con IA</p>
               <p className="text-xs font-mono mt-1" style={{color:'#6FD3E8'}}>Disponible ✓</p>
             </div>
             <svg className="transition-transform flex-shrink-0" style={{transform: activeCard==='recipes'?'rotate(90deg)':'rotate(0deg)'}}
@@ -487,6 +512,82 @@ export default function FoodLog() {
                   </button>
                 ))}
               </div>
+
+              {/* ── AI recipe generator toggle ── */}
+              <button onClick={()=>setShowAiPanel(!showAiPanel)}
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl active:scale-98 transition-transform"
+                style={{background:`linear-gradient(135deg, #6FD3E818, #CEFF3C10)`, border:'1px solid #6FD3E833'}}>
+                <span className="text-lg">✨</span>
+                <div className="flex-1 text-left">
+                  <p className="text-white font-display font-bold text-sm">Generar receta con IA</p>
+                  <p className="text-gray-500 font-mono" style={{fontSize:'10px'}}>Personalizada a tu objetivo</p>
+                </div>
+                <svg style={{transform: showAiPanel?'rotate(90deg)':'rotate(0)'}} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6FD3E8" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+
+              {showAiPanel && (
+                <div className="rounded-xl p-3 space-y-2" style={{background:'#252933', border:'1px solid #2e3140'}}>
+                  <input type="text" value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)}
+                    placeholder="Ej: algo con pollo y palta, bajo en carbos…"
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-body text-xs placeholder-gray-600 focus:outline-none focus:border-viking transition-colors" />
+                  <button onClick={handleGenerateRecipe} disabled={aiGenerating}
+                    className="w-full py-2.5 rounded-lg font-display font-bold text-sm flex items-center justify-center gap-2"
+                    style={{background: aiGenerating ? '#6FD3E844' : '#6FD3E8', color:'#111318'}}>
+                    {aiGenerating ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-carbon border-t-transparent rounded-full animate-spin"/>
+                        Generando…
+                      </>
+                    ) : '✨ Generar receta'}
+                  </button>
+                  {aiError && <p className="text-spartan text-xs font-mono text-center">{aiError}</p>}
+
+                  {aiRecipe && (
+                    <div className="rounded-xl overflow-hidden mt-2" style={{background:'#1C1F28', border:'1px solid #6FD3E833'}}>
+                      <div className="flex items-center gap-3 px-3 py-3">
+                        <span className="text-2xl flex-shrink-0">{aiRecipe.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-display font-bold text-sm leading-tight">{aiRecipe.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span className="text-volt font-mono text-xs font-bold">{aiRecipe.cal} kcal</span>
+                            <span className="font-mono text-xs" style={{color:'#E23A2E'}}>{aiRecipe.prot}g P</span>
+                            <span className="font-mono text-xs" style={{color:'#6FD3E8'}}>{aiRecipe.carbs}g C</span>
+                            <span className="text-gray-500 text-xs font-mono">⏱{aiRecipe.time}m</span>
+                          </div>
+                        </div>
+                        <button onClick={()=>{ setSelected({source:'recipe',item:aiRecipe}); setGrams('1') }}
+                          className="px-3 py-1.5 rounded-lg font-display font-bold text-xs uppercase flex-shrink-0"
+                          style={{background:'#6FD3E820',color:'#6FD3E8',border:'1px solid #6FD3E830'}}>
+                          + Agregar
+                        </button>
+                      </div>
+                      <div className="px-3 pb-3 space-y-3 border-t border-gray-800 pt-2">
+                        <div>
+                          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-1">Ingredientes</p>
+                          {aiRecipe.ingredients.map((ing,i)=>(
+                            <div key={i} className="flex justify-between py-0.5">
+                              <p className="text-white text-xs font-body">{ing.name}</p>
+                              <p className="text-gray-500 text-xs font-mono">{ing.amount}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-1">Preparación</p>
+                          {aiRecipe.steps.map((s,i)=>(
+                            <div key={i} className="flex gap-2 mb-1">
+                              <span className="font-mono text-xs font-bold flex-shrink-0" style={{color:'#6FD3E8'}}>{i+1}.</span>
+                              <p className="text-gray-400 text-xs font-body leading-relaxed">{s}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <button onClick={handleGenerateRecipe} className="w-full py-2 rounded-lg font-mono text-xs" style={{background:'#252933', color:'#6FD3E8'}}>
+                          🔄 Generar otra
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               {recipes.map(r=>(
                 <div key={r.id} className="rounded-xl overflow-hidden" style={{background:'#252933'}}>
                   <div className="flex items-center gap-3 px-3 py-3">
