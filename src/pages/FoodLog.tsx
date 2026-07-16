@@ -1,6 +1,7 @@
 import { useState, useMemo, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore'
+import { LINEAGES } from '../assets/data'
 import { FOODS, type FoodItem } from '../assets/foods'
 import { lookupBarcode, type OFFProduct } from '../utils/openFoodFacts'
 import { RECIPES, filterRecipes, type Recipe } from '../assets/recipes'
@@ -25,7 +26,9 @@ type SelectedFood = { source: 'db'; item: FoodItem } | { source: 'barcode'; item
 
 export default function FoodLog() {
   const navigate = useNavigate()
-  const { foodLog, addFood, removeFood } = useAppStore()
+  const { foodLog, addFood, removeFood, profile } = useAppStore()
+  const lineage = LINEAGES.find(l => l.id === profile.lineage)
+  const accentColor = lineage?.color || '#CEFF3C'
   const [activeCard, setActiveCard] = useState<ActiveCard>('none')
   const [query, setQuery] = useState('')
   const [activeMeal, setActiveMeal] = useState<MealType>('lunch')
@@ -114,7 +117,7 @@ export default function FoodLog() {
     (selected !== null && (selected.source === 'barcode' || selected.source === 'recipe'))
 
   return (
-    <div className="min-h-screen bg-carbon flex flex-col">
+    <div className="min-h-screen bg-carbon flex flex-col pb-24">
       {/* Scanner overlay */}
       {scanState === 'scanning' && (
         <Suspense fallback={<div className="fixed inset-0 bg-carbon flex items-center justify-center z-50"><div className="text-volt font-mono animate-pulse">Iniciando cámara…</div></div>}>
@@ -473,6 +476,28 @@ export default function FoodLog() {
           ))}
         </div>
       )}
+    </div>
+
+      {/* Nav bar — igual que Dashboard para mantenerla visible en Comida */}
+      <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around py-3 z-50"
+        style={{ background:'rgba(17,19,24,0.95)', backdropFilter:'blur(20px)', borderTop:'1px solid #1C1F28' }}>
+        {([
+          { id:'home',     icon:'🏠', label:'Inicio',   path:'/dashboard' },
+          { id:'workout',  icon:'🏋️', label:'Entrena',  path:'/dashboard' },
+          { id:'food',     icon:'🍽️', label:'Comida',   path:'' },
+          { id:'progress', icon:'📊', label:'Progreso', path:'/dashboard' },
+          { id:'avatar',   icon:'⚡', label:'Avatar',   path:'/dashboard' },
+        ]).map(tab => (
+          <button key={tab.id}
+            onClick={() => { if (tab.path) navigate(tab.path) }}
+            className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all"
+            style={{ color: tab.id === 'food' ? accentColor : '#555' }}>
+            <span className="text-xl">{tab.icon}</span>
+            <span className="font-mono text-xs">{tab.label}</span>
+            {tab.id === 'food' && <div className="w-1 h-1 rounded-full" style={{ background: accentColor }} />}
+          </button>
+        ))}
+      </nav>
     </div>
   )
 }
