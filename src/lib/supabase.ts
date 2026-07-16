@@ -5,9 +5,13 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-export async function analyzePlate(imageBase64: string, mimeType = 'image/jpeg') {
+export async function analyzePlate(
+  imageBase64: string,
+  mimeType = 'image/jpeg',
+  mode: 'plate' | 'label' = 'plate'
+) {
   const { data, error } = await supabase.functions.invoke('analyze-plate', {
-    body: { imageBase64, mimeType },
+    body: { imageBase64, mimeType, mode },
   })
   if (error) throw error
   return data

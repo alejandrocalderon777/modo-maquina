@@ -8,6 +8,8 @@ import { RECIPES, filterRecipes, type Recipe } from '../assets/recipes'
 import type { MealType, FoodEntry } from '../types'
 
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'))
+import { analyzePlate } from '../lib/supabase'
+import { PlateCamera } from '../components/PlateCamera'
 
 const MEAL_LABELS: Record<MealType, string> = { breakfast:'Desayuno', lunch:'Almuerzo', dinner:'Cena', snack:'Snack' }
 const MEAL_ICONS: Record<MealType, string>  = { breakfast:'🌅', lunch:'☀️', dinner:'🌙', snack:'⚡' }
@@ -20,7 +22,7 @@ const CATEGORY_ICONS: Record<string,string> = {
 }
 const RECIPE_CATS = ['Todos','Desayuno','Almuerzo','Cena','Snack']
 
-type ActiveCard = 'none' | 'foods' | 'recipes' | 'scan'
+type ActiveCard = 'none' | 'foods' | 'recipes' | 'scan' | 'plate' | 'label'
 type ScanState = 'idle' | 'scanning' | 'loading' | 'confirm' | 'notfound'
 type SelectedFood = { source: 'db'; item: FoodItem } | { source: 'barcode'; item: OFFProduct } | { source: 'recipe'; item: Recipe }
 
@@ -39,6 +41,70 @@ export default function FoodLog() {
   const [recipeCat, setRecipeCat] = useState('Todos')
   const [expandedRecipe, setExpandedRecipe] = useState<string | null>(null)
   const [added, setAdded] = useState<string | null>(null)
+
+  // ── Plate photo state ────────────────────────────────────────
+  type PlateState = 'idle' | 'capturing' | 'analyzing' | 'results' | 'error'
+  const [plateState, setPlateState] = useState<PlateState>('idle')
+  const [plateError, setPlateError] = useState('')
+  const [plateResults, setPlateResults] = useState<{
+    alimentos: { nombre:string; gramos:number; calorias:number; proteinas:number; carbohidratos:number; grasas:number }[]
+    totalCalorias:number; totalProteinas:number; totalCarbohidratos:number; totalGrasas:number
+  } | null>(null)
+  const openPlateCamera = async (mode: 'plate' | 'label') => {
+    setActiveCard(mode)
+    setPlateState('capturing')
+    setPlateResults(null)
+    setPlateError('')
+  }
+
+  const capturePlate = async (videoEl: HTMLVideoElement, mode: 'plate' | 'label') => {
+    const canvas = document.createElement('canvas')
+    canvas.width  = videoEl.videoWidth
+    canvas.height = videoEl.videoHeight
+    canvas.getContext('2d')!.drawImage(videoEl, 0, 0)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+    const base64  = dataUrl.split(',')[1]
+
+    // stop camera
+    videoEl.srcObject && (videoEl.srcObject as MediaStream).getTracks().forEach(t => t.stop())
+
+    setPlateState('analyzing')
+    try {
+      const result = await analyzePlate(base64, 'image/jpeg', mode)
+      if (result?.error) {
+        setPlateError(result.error)
+        setPlateState('error')
+      } else {
+        setPlateResults(result)
+        setPlateState('results')
+      }
+    } catch {
+      setPlateError('Error al analizar la imagen. Intenta de nuevo.')
+      setPlateState('error')
+    }
+  }
+
+  const addPlateToLog = () => {
+    if (!plateResults) return
+    for (const a of plateResults.alimentos) {
+      addFood({
+        id: `plate-${Date.now()}-${Math.random()}`,
+        foodId: `plate-${a.nombre}`,
+        name: a.nombre,
+        grams: a.gramos,
+        cal: a.calorias,
+        prot: a.proteinas,
+        carbs: a.carbohidratos,
+        fat: a.grasas,
+        mealType: activeMeal,
+        date: today,
+        timestamp: Date.now(),
+      })
+    }
+    setActiveCard('none')
+    setPlateState('idle')
+    setPlateResults(null)
+  }
 
   const today = getToday()
   const todayLog = foodLog.filter(e => e.date === today)
@@ -421,32 +487,152 @@ export default function FoodLog() {
         </button>
 
         {/* PLATE PHOTO card */}
-        <div className="flex items-center gap-4 p-4 rounded-2xl opacity-50"
-          style={{background:'#1C1F28', border:'1px solid #252933'}}>
+        <button onClick={() => openPlateCamera('plate')}
+          className="flex items-center gap-4 p-4 rounded-2xl w-full text-left active:scale-98 transition-transform"
+          style={{background:'#1C1F28', border:`1px solid #6FD3E833`}}>
           <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
-            style={{background:'#6FD3E815'}}>
+            style={{background:'#6FD3E820'}}>
             📸
           </div>
           <div className="flex-1">
             <p className="text-white font-display font-bold text-base">Foto del plato</p>
-            <p className="text-gray-500 text-xs font-body mt-0.5">IA identifica automáticamente los alimentos</p>
-            <p className="text-gray-600 text-xs font-mono mt-1">Próximamente — requiere IA conectada</p>
+            <p className="text-gray-400 text-xs font-body mt-0.5">IA identifica automáticamente los alimentos</p>
+            <p className="font-mono text-xs mt-1" style={{color:'#6FD3E8'}}>Claude Vision · activo ✓</p>
           </div>
-        </div>
+        </button>
 
         {/* LABEL card */}
-        <div className="flex items-center gap-4 p-4 rounded-2xl opacity-50"
-          style={{background:'#1C1F28', border:'1px solid #252933'}}>
+        <button onClick={() => openPlateCamera('label')}
+          className="flex items-center gap-4 p-4 rounded-2xl w-full text-left active:scale-98 transition-transform"
+          style={{background:'#1C1F28', border:`1px solid #DE782C33`}}>
           <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
-            style={{background:'#DE782C15'}}>
+            style={{background:'#DE782C20'}}>
             🏷️
           </div>
           <div className="flex-1">
             <p className="text-white font-display font-bold text-base">Etiqueta nutricional</p>
-            <p className="text-gray-500 text-xs font-body mt-0.5">Fotografía la tabla de información nutricional</p>
-            <p className="text-gray-600 text-xs font-mono mt-1">Próximamente — requiere IA conectada</p>
+            <p className="text-gray-400 text-xs font-body mt-0.5">Fotografía la tabla de información nutricional</p>
+            <p className="font-mono text-xs mt-1" style={{color:'#DE782C'}}>Claude Vision · activo ✓</p>
           </div>
-        </div>
+        </button>
+
+        {/* ── PLATE CAMERA MODAL ── */}
+        {(activeCard === 'plate' || activeCard === 'label') && (
+          <div className="fixed inset-0 z-50 flex flex-col" style={{background:'#111318'}}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pt-safe pt-4 pb-3"
+              style={{borderBottom:'1px solid #1C1F28'}}>
+              <button onClick={() => { setActiveCard('none'); setPlateState('idle') }}
+                className="text-gray-500 font-mono text-sm">← Cancelar</button>
+              <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">
+                {activeCard === 'plate' ? 'Foto del plato' : 'Etiqueta nutricional'}
+              </p>
+              <div className="w-16"/>
+            </div>
+
+            {/* CAPTURING */}
+            {plateState === 'capturing' && (
+              <PlateCamera
+                onCapture={(v) => capturePlate(v, activeCard as 'plate'|'label')}
+                accentColor={accentColor}
+                mode={activeCard as 'plate'|'label'}
+              />
+            )}
+
+            {/* ANALYZING */}
+            {plateState === 'analyzing' && (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                <div className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin"
+                  style={{borderColor:`${accentColor}44`, borderTopColor:'transparent'}}/>
+                <p className="font-mono text-sm" style={{color:accentColor}}>Analizando con Claude Vision…</p>
+                <p className="font-mono text-xs text-gray-600">Identificando alimentos y macros</p>
+              </div>
+            )}
+
+            {/* ERROR */}
+            {plateState === 'error' && (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8">
+                <p className="text-4xl">😕</p>
+                <p className="text-white font-body text-center">{plateError}</p>
+                <button onClick={() => openPlateCamera(activeCard as 'plate'|'label')}
+                  className="px-6 py-3 rounded-xl font-mono text-sm"
+                  style={{background:accentColor, color:'#111318'}}>Intentar de nuevo</button>
+              </div>
+            )}
+
+            {/* RESULTS */}
+            {plateState === 'results' && plateResults && (
+              <div className="flex-1 overflow-y-auto px-4 pb-32 pt-4">
+                <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Detectado por IA</p>
+                <div className="space-y-2 mb-4">
+                  {plateResults.alimentos.map((a, i) => (
+                    <div key={i} className="rounded-xl p-3" style={{background:'#1C1F28'}}>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-white font-body text-sm font-medium">{a.nombre}</p>
+                        <p className="font-mono text-xs text-gray-500">{a.gramos}g</p>
+                      </div>
+                      <div className="flex gap-3">
+                        {[
+                          {l:'Kcal', v:a.calorias, c:accentColor},
+                          {l:'P', v:a.proteinas, c:'#E23A2E'},
+                          {l:'C', v:a.carbohidratos, c:'#6FD3E8'},
+                          {l:'G', v:a.grasas, c:'#DE782C'},
+                        ].map(m => (
+                          <div key={m.l} className="text-center">
+                            <p className="font-mono text-xs font-bold" style={{color:m.c}}>{Math.round(m.v)}</p>
+                            <p className="font-mono text-gray-600" style={{fontSize:'9px'}}>{m.l}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Total */}
+                <div className="rounded-xl p-3 mb-4" style={{background:`${accentColor}15`, border:`1px solid ${accentColor}33`}}>
+                  <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-2">Total estimado</p>
+                  <div className="flex gap-4">
+                    {[
+                      {l:'Calorías', v:plateResults.totalCalorias, c:accentColor},
+                      {l:'Proteínas', v:plateResults.totalProteinas, c:'#E23A2E'},
+                      {l:'Carbos', v:plateResults.totalCarbohidratos, c:'#6FD3E8'},
+                      {l:'Grasas', v:plateResults.totalGrasas, c:'#DE782C'},
+                    ].map(m => (
+                      <div key={m.l}>
+                        <p className="font-mono font-bold" style={{color:m.c, fontSize:'15px'}}>{Math.round(m.v)}</p>
+                        <p className="font-mono text-gray-600" style={{fontSize:'9px'}}>{m.l}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Meal selector */}
+                <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-2">Agregar a</p>
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {(Object.keys(MEAL_LABELS) as MealType[]).map(m => (
+                    <button key={m} onClick={() => setActiveMeal(m)}
+                      className="py-2 rounded-xl font-mono text-xs"
+                      style={{
+                        background: activeMeal === m ? accentColor : '#1C1F28',
+                        color: activeMeal === m ? '#111318' : '#888'
+                      }}>
+                      {MEAL_ICONS[m]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Bottom CTA */}
+            {plateState === 'results' && (
+              <div className="fixed bottom-0 left-0 right-0 p-4" style={{background:'rgba(17,19,24,0.97)'}}>
+                <button onClick={addPlateToLog}
+                  className="w-full py-4 rounded-2xl font-display font-black text-lg"
+                  style={{background:accentColor, color:'#111318'}}>
+                  Agregar al registro
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
 
