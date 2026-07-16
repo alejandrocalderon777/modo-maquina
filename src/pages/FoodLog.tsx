@@ -68,26 +68,15 @@ export default function FoodLog() {
     setPlateError('')
   }
 
-  const capturePlate = async (videoEl: HTMLVideoElement, mode: 'plate' | 'label') => {
-    const canvas = document.createElement('canvas')
-    canvas.width  = videoEl.videoWidth
-    canvas.height = videoEl.videoHeight
-    canvas.getContext('2d')!.drawImage(videoEl, 0, 0)
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
-    const base64  = dataUrl.split(',')[1]
-
-    // stop camera
-    videoEl.srcObject && (videoEl.srcObject as MediaStream).getTracks().forEach(t => t.stop())
-
+  const runPlateAnalysis = async (base64: string, mimeType: string, mode: 'plate' | 'label') => {
     setPlateState('analyzing')
     try {
-      const result = await analyzePlate(base64, 'image/jpeg', mode)
+      const result = await analyzePlate(base64, mimeType, mode)
       if (result?.error) {
         setPlateError(result.error)
         setPlateState('error')
       } else {
         setPlateResults(result)
-        // init editable grams
         const initGrams: Record<number,string> = {}
         result.alimentos?.forEach((a: {gramos:number}, i: number) => { initGrams[i] = String(a.gramos) })
         setPlateGrams(initGrams)
@@ -97,6 +86,22 @@ export default function FoodLog() {
       setPlateError('Error al analizar la imagen. Intenta de nuevo.')
       setPlateState('error')
     }
+  }
+
+  const capturePlate = async (videoEl: HTMLVideoElement, mode: 'plate' | 'label') => {
+    const canvas = document.createElement('canvas')
+    canvas.width  = videoEl.videoWidth || 1280
+    canvas.height = videoEl.videoHeight || 720
+    canvas.getContext('2d')!.drawImage(videoEl, 0, 0)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+    const base64  = dataUrl.split(',')[1]
+    // stop camera
+    if (videoEl.srcObject) (videoEl.srcObject as MediaStream).getTracks().forEach(t => t.stop())
+    await runPlateAnalysis(base64, 'image/jpeg', mode)
+  }
+
+  const capturePlateFile = async (base64: string, mimeType: string, mode: 'plate' | 'label') => {
+    await runPlateAnalysis(base64, mimeType, mode)
   }
 
   const addPlateToLog = () => {
@@ -782,6 +787,7 @@ export default function FoodLog() {
             {plateState === 'capturing' && (
               <PlateCamera
                 onCapture={(v) => capturePlate(v, activeCard as 'plate'|'label')}
+                onCaptureFile={(b64, mt) => capturePlateFile(b64, mt, activeCard as 'plate'|'label')}
                 accentColor={accentColor}
                 mode={activeCard as 'plate'|'label'}
               />

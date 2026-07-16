@@ -66,7 +66,6 @@ export default function BodyScan({ onPhoto, onClose, accentColor = '#CEFF3C' }: 
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="user"
         className="hidden"
         onChange={handleFileChange}
       />
