@@ -190,22 +190,16 @@ export default function Dashboard() {
       {/* Coach message */}
       <div className="mx-4 mb-4 rounded-2xl p-4"
         style={{ background:`linear-gradient(135deg, ${accentColor}12, ${accentColor}05)`, border:`1px solid ${accentColor}33` }}>
-        <div className="flex items-start gap-3">
-          <div className="rounded-xl overflow-hidden flex-shrink-0"
-            style={{ width:56, height:56, border:`2px solid ${accentColor}` }}>
-            <img src={avatarSrc} alt="Coach" className="w-full h-full object-cover" />
-          </div>
-          <div className="flex-1">
-            <p className="font-mono text-xs uppercase tracking-widest mb-1" style={{ color:accentColor }}>
-              Coach · {lineage?.fullName}
+        <div>
+          <p className="font-mono text-xs uppercase tracking-widest mb-2" style={{ color:accentColor }}>
+            Coach · {lineage?.fullName}
+          </p>
+          <p className="text-white text-sm font-body leading-relaxed italic">"{todayPhrase}"</p>
+          {emotion && (
+            <p className="text-gray-500 text-xs font-mono mt-1">
+              {emotion <= 2 ? '— Hoy vamos suave, pero vamos.' : '— ¡A darle con todo!'}
             </p>
-            <p className="text-white text-sm font-body leading-relaxed italic">"{todayPhrase}"</p>
-            {emotion && (
-              <p className="text-gray-500 text-xs font-mono mt-1">
-                {emotion <= 2 ? '— Hoy vamos suave, pero vamos.' : '— ¡A darle con todo!'}
-              </p>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
