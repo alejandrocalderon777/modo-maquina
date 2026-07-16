@@ -19,14 +19,14 @@ const CATEGORY_ICONS: Record<string,string> = {
 }
 const RECIPE_CATS = ['Todos','Desayuno','Almuerzo','Cena','Snack']
 
-type MainTab = 'foods' | 'recipes' | 'scan'
+type ActiveCard = 'none' | 'foods' | 'recipes' | 'scan'
 type ScanState = 'idle' | 'scanning' | 'loading' | 'confirm' | 'notfound'
 type SelectedFood = { source: 'db'; item: FoodItem } | { source: 'barcode'; item: OFFProduct } | { source: 'recipe'; item: Recipe }
 
 export default function FoodLog() {
   const navigate = useNavigate()
   const { foodLog, addFood, removeFood } = useAppStore()
-  const [tab, setTab] = useState<MainTab>('foods')
+  const [activeCard, setActiveCard] = useState<ActiveCard>('none')
   const [query, setQuery] = useState('')
   const [activeMeal, setActiveMeal] = useState<MealType>('lunch')
   const [selected, setSelected] = useState<SelectedFood | null>(null)
@@ -147,7 +147,7 @@ export default function FoodLog() {
               <p className="text-white font-display font-bold text-lg">Producto no encontrado</p>
               <p className="text-gray-500 text-sm font-mono">{scannedCode}</p>
               <button onClick={() => setScanState('scanning')} className="w-full py-3.5 rounded-xl font-display font-bold uppercase text-sm" style={{background:'#CEFF3C',color:'#111318'}}>Escanear otro</button>
-              <button onClick={() => { setScanState('idle'); setTab('foods') }} className="w-full py-3.5 rounded-xl bg-gray-800 text-gray-300 font-display font-bold uppercase text-sm">Buscar por nombre</button>
+              <button onClick={() => { setScanState('idle'); setActiveCard('foods') }} className="w-full py-3.5 rounded-xl bg-gray-800 text-gray-300 font-display font-bold uppercase text-sm">Buscar por nombre</button>
             </div>
           )}
 
@@ -259,213 +259,193 @@ export default function FoodLog() {
         </div>
       </div>
 
-      {/* ── Main tabs ── */}
-      <div className="flex gap-1 px-4 mb-3 bg-gray-900 rounded-2xl mx-4 p-1">
-        {([
-          { id:'foods',   label:'Alimentos', icon:'🔍' },
-          { id:'recipes', label:'Recetas',   icon:'👨‍🍳' },
-          { id:'scan',    label:'Escanear',  icon:'📷' },
-        ] as {id:MainTab;label:string;icon:string}[]).map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-mono text-xs uppercase tracking-widest transition-all"
-            style={{background:tab===t.id?'#CEFF3C':'transparent',color:tab===t.id?'#111318':'#666',fontWeight:tab===t.id?700:400}}>
-            {t.icon} {t.label}
-          </button>
-        ))}
-      </div>
+      {/* ── Entry method cards ── */}
+      <div className="px-4 pb-4 space-y-3 flex-1 overflow-y-auto">
 
-      {/* ── FOODS tab ── */}
-      {tab === 'foods' && (
-        <>
-          {/* Search */}
-          <div className="px-4 mb-3">
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar alimento…"
-                className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-4 py-3 text-white font-body placeholder-gray-600 focus:outline-none focus:border-volt transition-colors" />
-              {query && <button onClick={()=>setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">✕</button>}
+        {/* ALIMENTOS card */}
+        <div className="rounded-2xl overflow-hidden" style={{border:'1px solid', borderColor: activeCard==='foods' ? '#CEFF3C' : '#252933', background:'#1C1F28'}}>
+          <button className="w-full flex items-center gap-4 p-4 text-left active:scale-95 transition-transform"
+            onClick={()=>setActiveCard(activeCard==='foods'?'none':'foods')}>
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
+              style={{background: activeCard==='foods' ? '#CEFF3C20' : '#252933'}}>
+              🔍
             </div>
-          </div>
+            <div className="flex-1">
+              <p className="text-white font-display font-bold text-base">Buscar alimento</p>
+              <p className="text-gray-500 text-xs font-body mt-0.5">Base de datos con más de 50 alimentos</p>
+              <p className="text-xs font-mono mt-1" style={{color:'#CEFF3C'}}>Disponible ✓</p>
+            </div>
+            <svg className="transition-transform flex-shrink-0" style={{transform: activeCard==='foods'?'rotate(90deg)':'rotate(0deg)'}}
+              width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
 
-          {/* Grouped food list */}
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
-            {groupedFoods.length === 0 ? (
-              <p className="text-gray-600 text-center font-mono text-sm py-8">Sin resultados</p>
-            ) : (
-              groupedFoods.map(group => (
-                <div key={group.category} className="mb-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">{CATEGORY_ICONS[group.category]}</span>
-                    <p className="font-mono text-xs text-gray-400 uppercase tracking-widest">{group.category}</p>
+          {activeCard === 'foods' && (
+            <div className="border-t border-gray-800 px-3 pb-3 pt-2">
+              <div className="relative mb-3">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar…"
+                  className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-9 pr-3 py-2.5 text-white font-body text-sm placeholder-gray-600 focus:outline-none focus:border-volt transition-colors" />
+                {query && <button onClick={()=>setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs">✕</button>}
+              </div>
+              {groupedFoods.map(group => (
+                <div key={group.category} className="mb-3">
+                  <div className="flex items-center gap-1.5 mb-1.5 px-1">
+                    <span className="text-base">{CATEGORY_ICONS[group.category]}</span>
+                    <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">{group.category}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {group.items.map((food) => (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {group.items.map(food=>(
                       <button key={food.id}
                         onClick={()=>{ setSelected({source:'db',item:food}); setGrams(String(food.serving)); setScanState('confirm') }}
-                        className="flex flex-col justify-between p-4 rounded-2xl text-left active:scale-95 transition-transform"
-                        style={{background:'#1C1F28', border:'1px solid #252933'}}>
-                        <div className="mb-3">
-                          <p className="text-white font-display font-bold text-sm leading-tight">{food.name}</p>
-                          <p className="text-gray-500 text-xs font-mono mt-0.5">{food.serving}{food.unit} · porción</p>
-                        </div>
+                        className="flex flex-col justify-between p-3 rounded-xl text-left active:scale-95 transition-transform"
+                        style={{background:'#252933', border:'1px solid #2e3140'}}>
+                        <p className="text-white font-body text-xs font-semibold leading-tight mb-2">{food.name}</p>
                         <div>
-                          <p className="text-volt font-display font-black text-xl">{Math.round(food.cal * food.serving / 100)}<span className="text-xs font-mono text-gray-500 ml-1">kcal</span></p>
-                          <div className="flex gap-2 mt-1">
-                            <span className="font-mono text-xs" style={{color:'#E23A2E'}}>{Math.round(food.prot * food.serving / 100)}g P</span>
-                            <span className="font-mono text-xs" style={{color:'#6FD3E8'}}>{Math.round(food.carbs * food.serving / 100)}g C</span>
-                            <span className="font-mono text-xs" style={{color:'#DE782C'}}>{Math.round(food.fat * food.serving / 100)}g G</span>
-                          </div>
+                          <p className="text-volt font-display font-black text-base">{Math.round(food.cal*food.serving/100)}<span className="text-xs font-mono text-gray-500 ml-1">kcal</span></p>
+                          <p className="text-gray-600 text-xs font-mono">{food.serving}{food.unit} · {Math.round(food.prot*food.serving/100)}g P</p>
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </>
-      )}
-
-      {/* ── RECIPES tab ── */}
-      {tab === 'recipes' && (
-        <>
-          {/* Category filter */}
-          <div className="flex gap-2 px-4 mb-3 overflow-x-auto pb-1">
-            {RECIPE_CATS.map(c=>(
-              <button key={c} onClick={()=>setRecipeCat(c)}
-                className="px-3 py-1.5 rounded-xl font-mono text-xs uppercase tracking-widest whitespace-nowrap flex-shrink-0 transition-all"
-                style={{background:recipeCat===c?'#CEFF3C':'#1C1F28',color:recipeCat===c?'#111318':'#666',fontWeight:recipeCat===c?700:400}}>
-                {c}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
-            {recipes.map(r=>(
-              <div key={r.id} className="rounded-2xl overflow-hidden" style={{background:'#1C1F28'}}>
-                {/* Recipe header */}
-                <button className="w-full flex items-center gap-3 px-4 py-3 text-left" onClick={()=>setExpandedRecipe(expandedRecipe===r.id ? null : r.id)}>
-                  <span className="text-3xl flex-shrink-0">{r.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-display font-bold text-base leading-tight">{r.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="px-2 py-0.5 rounded-md font-mono text-xs" style={{background:'#CEFF3C20',color:'#CEFF3C'}}>{r.tag}</span>
-                      <span className="text-gray-600 text-xs font-mono">⏱ {r.time} min</span>
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0 ml-2">
-                    <p className="text-volt font-display font-bold text-lg">{r.cal}</p>
-                    <p className="text-gray-600 text-xs font-mono">kcal</p>
-                  </div>
-                </button>
-
-                {/* Macros row */}
-                <div className="flex gap-3 px-4 pb-3 border-b border-gray-800">
-                  {[{l:'Prot',v:`${r.prot}g`,c:'#E23A2E'},{l:'Carbs',v:`${r.carbs}g`,c:'#6FD3E8'},{l:'Grasas',v:`${r.fat}g`,c:'#DE782C'}].map(m=>(
-                    <div key={m.l} className="flex items-center gap-1">
-                      <p className="font-mono font-bold text-sm" style={{color:m.c}}>{m.v}</p>
-                      <p className="text-gray-600 text-xs font-mono">{m.l}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Expanded detail */}
-                {expandedRecipe === r.id && (
-                  <div className="px-4 py-3">
-                    <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-2">Ingredientes</p>
-                    <div className="space-y-1 mb-4">
-                      {r.ingredients.map((ing,i)=>(
-                        <div key={i} className="flex items-center justify-between">
-                          <p className="text-white text-sm font-body">{ing.name}</p>
-                          <p className="text-gray-500 text-xs font-mono">{ing.amount}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-2">Preparación</p>
-                    <div className="space-y-2">
-                      {r.steps.map((s,i)=>(
-                        <div key={i} className="flex gap-2">
-                          <span className="font-mono text-xs font-bold flex-shrink-0 mt-0.5" style={{color:'#CEFF3C'}}>{i+1}.</span>
-                          <p className="text-gray-400 text-sm font-body leading-relaxed">{s}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Add button */}
-                <div className="px-4 pb-3 pt-2 flex gap-2">
-                  <button onClick={()=>setExpandedRecipe(expandedRecipe===r.id?null:r.id)}
-                    className="flex-1 py-2.5 rounded-xl font-mono text-xs uppercase tracking-widest bg-gray-800 text-gray-400">
-                    {expandedRecipe===r.id?'Cerrar':'Ver receta'}
-                  </button>
-                  <button onClick={()=>{ setSelected({source:'recipe',item:r}); setGrams('1') }}
-                    className="flex-1 py-2.5 rounded-xl font-display font-bold text-sm uppercase"
-                    style={{background:'#CEFF3C',color:'#111318'}}>
-                    + Registrar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* ── SCAN tab ── */}
-      {tab === 'scan' && (
-        <div className="flex-1 px-4 pb-4 flex flex-col gap-4 pt-2">
-          {/* Barcode */}
-          <button onClick={()=>setScanState('scanning')}
-            className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 text-left active:scale-95 transition-transform"
-            style={{borderColor:'#CEFF3C33',background:'#1C1F28'}}>
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-3xl" style={{background:'#CEFF3C15'}}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#CEFF3C" strokeWidth="2" strokeLinecap="round">
-                <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
-                <rect x="7" y="7" width="10" height="10" rx="1"/>
-              </svg>
+              ))}
             </div>
-            <div>
-              <p className="text-white font-display font-bold text-base">Código de barras</p>
-              <p className="text-gray-500 text-xs font-body mt-0.5">Escanea cualquier producto del supermercado</p>
-              <p className="text-volt text-xs font-mono mt-1">Disponible ✓</p>
+          )}
+        </div>
+
+        {/* RECETAS card */}
+        <div className="rounded-2xl overflow-hidden" style={{border:'1px solid', borderColor: activeCard==='recipes' ? '#6FD3E8' : '#252933', background:'#1C1F28'}}>
+          <button className="w-full flex items-center gap-4 p-4 text-left active:scale-95 transition-transform"
+            onClick={()=>setActiveCard(activeCard==='recipes'?'none':'recipes')}>
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
+              style={{background: activeCard==='recipes' ? '#6FD3E820' : '#252933'}}>
+              👨‍🍳
             </div>
-            <svg className="ml-auto text-gray-600" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+            <div className="flex-1">
+              <p className="text-white font-display font-bold text-base">Recetas saludables</p>
+              <p className="text-gray-500 text-xs font-body mt-0.5">8 recetas con macros y preparación</p>
+              <p className="text-xs font-mono mt-1" style={{color:'#6FD3E8'}}>Disponible ✓</p>
+            </div>
+            <svg className="transition-transform flex-shrink-0" style={{transform: activeCard==='recipes'?'rotate(90deg)':'rotate(0deg)'}}
+              width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
           </button>
 
-          {/* Plate photo */}
-          <div className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 text-left opacity-60"
-            style={{borderColor:'#6FD3E833',background:'#1C1F28'}}>
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-3xl" style={{background:'#6FD3E815'}}>
-              📸
+          {activeCard === 'recipes' && (
+            <div className="border-t border-gray-800 px-3 pb-3 pt-2 space-y-2">
+              {/* Category filter */}
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {RECIPE_CATS.map(cat=>(
+                  <button key={cat} onClick={()=>setRecipeCat(cat)}
+                    className="px-2.5 py-1 rounded-lg font-mono text-xs uppercase tracking-widest whitespace-nowrap flex-shrink-0 transition-all"
+                    style={{background:recipeCat===cat?'#6FD3E8':'#252933',color:recipeCat===cat?'#111318':'#555',fontWeight:recipeCat===cat?700:400}}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+              {recipes.map(r=>(
+                <div key={r.id} className="rounded-xl overflow-hidden" style={{background:'#252933'}}>
+                  <div className="flex items-center gap-3 px-3 py-3">
+                    <span className="text-2xl flex-shrink-0">{r.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-display font-bold text-sm leading-tight">{r.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-volt font-mono text-xs font-bold">{r.cal} kcal</span>
+                        <span className="text-gray-600 text-xs font-mono">·</span>
+                        <span className="font-mono text-xs" style={{color:'#E23A2E'}}>{r.prot}g P</span>
+                        <span className="font-mono text-xs" style={{color:'#6FD3E8'}}>{r.carbs}g C</span>
+                        <span className="text-gray-600 text-xs font-mono">·</span>
+                        <span className="text-gray-500 text-xs font-mono">⏱{r.time}m</span>
+                      </div>
+                    </div>
+                    <button onClick={()=>{ setSelected({source:'recipe',item:r}); setGrams('1') }}
+                      className="px-3 py-1.5 rounded-lg font-display font-bold text-xs uppercase flex-shrink-0"
+                      style={{background:'#6FD3E820',color:'#6FD3E8',border:'1px solid #6FD3E830'}}>
+                      + Agregar
+                    </button>
+                  </div>
+                  <button className="w-full text-left px-3 pb-2" onClick={()=>setExpandedRecipe(expandedRecipe===r.id?null:r.id)}>
+                    <p className="text-gray-600 text-xs font-mono">{expandedRecipe===r.id ? '▲ ocultar receta' : '▼ ver receta'}</p>
+                  </button>
+                  {expandedRecipe === r.id && (
+                    <div className="px-3 pb-3 space-y-3 border-t border-gray-800 pt-2">
+                      <div>
+                        <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-1">Ingredientes</p>
+                        {r.ingredients.map((ing,i)=>(
+                          <div key={i} className="flex justify-between py-0.5">
+                            <p className="text-white text-xs font-body">{ing.name}</p>
+                            <p className="text-gray-500 text-xs font-mono">{ing.amount}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-1">Preparación</p>
+                        {r.steps.map((s,i)=>(
+                          <div key={i} className="flex gap-2 mb-1">
+                            <span className="font-mono text-xs font-bold flex-shrink-0" style={{color:'#6FD3E8'}}>{i+1}.</span>
+                            <p className="text-gray-400 text-xs font-body leading-relaxed">{s}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="flex-1">
-              <p className="text-white font-display font-bold text-base">Foto del plato</p>
-              <p className="text-gray-500 text-xs font-body mt-0.5">IA identifica automáticamente los alimentos</p>
-              <p className="text-gray-600 text-xs font-mono mt-1">Próximamente — requiere IA conectada</p>
-            </div>
-          </div>
+          )}
+        </div>
 
-          {/* Product label */}
-          <div className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 text-left opacity-60"
-            style={{borderColor:'#DE782C33',background:'#1C1F28'}}>
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-3xl" style={{background:'#DE782C15'}}>
-              🏷️
-            </div>
-            <div className="flex-1">
-              <p className="text-white font-display font-bold text-base">Etiqueta nutricional</p>
-              <p className="text-gray-500 text-xs font-body mt-0.5">Fotografía la tabla de información nutricional</p>
-              <p className="text-gray-600 text-xs font-mono mt-1">Próximamente — requiere IA conectada</p>
-            </div>
+        {/* BARCODE card */}
+        <button className="w-full flex items-center gap-4 p-4 rounded-2xl text-left active:scale-95 transition-transform"
+          style={{background:'#1C1F28', border:'1px solid #252933'}}
+          onClick={()=>setScanState('scanning')}>
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{background:'#CEFF3C15', border:'1px solid #CEFF3C20'}}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#CEFF3C" strokeWidth="2" strokeLinecap="round">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+              <rect x="7" y="7" width="10" height="10" rx="1"/>
+            </svg>
           </div>
+          <div className="flex-1">
+            <p className="text-white font-display font-bold text-base">Código de barras</p>
+            <p className="text-gray-500 text-xs font-body mt-0.5">Escanea cualquier producto del supermercado</p>
+            <p className="text-volt text-xs font-mono mt-1">Disponible ✓</p>
+          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
 
-          <div className="rounded-2xl p-4 bg-gray-900 text-center">
-            <p className="text-gray-600 text-xs font-body">
-              La identificación automática por foto se activa cuando conectemos Supabase + Anthropic Vision.
-              Por ahora usa código de barras o busca por nombre.
-            </p>
+        {/* PLATE PHOTO card */}
+        <div className="flex items-center gap-4 p-4 rounded-2xl opacity-50"
+          style={{background:'#1C1F28', border:'1px solid #252933'}}>
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
+            style={{background:'#6FD3E815'}}>
+            📸
+          </div>
+          <div className="flex-1">
+            <p className="text-white font-display font-bold text-base">Foto del plato</p>
+            <p className="text-gray-500 text-xs font-body mt-0.5">IA identifica automáticamente los alimentos</p>
+            <p className="text-gray-600 text-xs font-mono mt-1">Próximamente — requiere IA conectada</p>
           </div>
         </div>
-      )}
+
+        {/* LABEL card */}
+        <div className="flex items-center gap-4 p-4 rounded-2xl opacity-50"
+          style={{background:'#1C1F28', border:'1px solid #252933'}}>
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
+            style={{background:'#DE782C15'}}>
+            🏷️
+          </div>
+          <div className="flex-1">
+            <p className="text-white font-display font-bold text-base">Etiqueta nutricional</p>
+            <p className="text-gray-500 text-xs font-body mt-0.5">Fotografía la tabla de información nutricional</p>
+            <p className="text-gray-600 text-xs font-mono mt-1">Próximamente — requiere IA conectada</p>
+          </div>
+        </div>
+
+      </div>
 
       {/* ── Today's log ── */}
       {todayLog.length > 0 && !showModal && (
