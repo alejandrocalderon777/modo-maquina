@@ -16,7 +16,7 @@ export function ShimejiAvatar({ avatarSrc, accentColor, phrases }: Props) {
 
   useEffect(() => {
     const SPEED    = 1.0          // px / frame
-    const SIZE     = 56           // avatar px
+    const SIZE     = 64           // avatar px
     const BOTTOM   = 76           // above nav bar
     let x          = Math.random() * (window.innerWidth - SIZE - 20) + 10
     let dir        = Math.random() > 0.5 ? 1 : -1
@@ -93,8 +93,8 @@ export function ShimejiAvatar({ avatarSrc, accentColor, phrases }: Props) {
         position:  'fixed',
         bottom:    76,
         left:      80,
-        width:     56,
-        height:    56,
+        width:     64,
+        height:    96,
         zIndex:    44,
         cursor:    'pointer',
         transformOrigin: 'center bottom',
@@ -139,24 +139,24 @@ export function ShimejiAvatar({ avatarSrc, accentColor, phrases }: Props) {
         </div>
       )}
 
-      {/* Avatar image */}
+      {/* Avatar image — full body, no crop */}
       <div
         ref={imgRef}
-        style={{ width: 56, height: 56, transition: 'transform 0.2s ease' }}
+        style={{ width: 64, height: 96, transition: 'transform 0.2s ease' }}
       >
         <img
           src={avatarSrc}
           alt="shimeji"
           style={{
-            width:        56,
-            height:       56,
-            borderRadius: '50%',
-            border:       `2px solid ${accentColor}`,
-            boxShadow:    `0 2px 12px ${accentColor}44`,
+            width:        64,
+            height:       96,
+            borderRadius: 0,
             objectFit:    'cover',
+            objectPosition: 'top center',
             display:      'block',
             userSelect:   'none',
             pointerEvents:'none',
+            filter:       `drop-shadow(0 4px 8px ${accentColor}55)`,
           }}
         />
       </div>
