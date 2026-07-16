@@ -41,7 +41,26 @@ export default function Dashboard() {
   const todayStr = new Date().toISOString().split('T')[0]
 
   // ── Streak: increment on first open of a new day
-  useEffect(() => { checkAndUpdateStreak() }, [])  // eslint-disable-line
+  useEffect(() => {
+    // Ejecutar al montar
+    checkAndUpdateStreak()
+
+    // Ejecutar cuando la app vuelve a primer plano (clave para PWA)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') checkAndUpdateStreak()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+
+    // Timer cada 60s — detecta el cruce de medianoche sin reabrir la app
+    const interval = setInterval(() => { checkAndUpdateStreak() }, 60_000)
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+      clearInterval(interval)
+    }
+  }, []) // eslint-disable-line
 
   const lineage     = LINEAGES.find((l) => l.id === profile.lineage)
   const accentColor = lineage?.color || '#CEFF3C'
