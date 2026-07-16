@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { BrowserMultiFormatReader } from '@zxing/browser'
 
 interface Props {
   onResult: (barcode: string) => void
@@ -13,6 +14,8 @@ export default function BarcodeScanner({ onResult, onClose }: Props) {
   const streamRef = useRef<MediaStream | null>(null)
   const rafRef = useRef<number>(0)
   const doneRef = useRef(false)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const zxingControlsRef = useRef<any>(null)
 
   useEffect(() => {
     const supportsDetector = 'BarcodeDetector' in window
@@ -40,9 +43,30 @@ export default function BarcodeScanner({ onResult, onClose }: Props) {
             formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e', 'code_39', 'qr_code'],
           })
           scanLoop(detector)
+        } else {
+          // Fallback for iOS Safari (no BarcodeDetector): use ZXing software decoder
+          startZxing(stream)
         }
       } catch {
         setError('No se pudo acceder a la cámara. Verifica los permisos en tu navegador.')
+      }
+    }
+
+    const startZxing = async (stream: MediaStream) => {
+      try {
+        const reader = new BrowserMultiFormatReader()
+        if (!videoRef.current) return
+        const controls = await reader.decodeFromStream(stream, videoRef.current, (result) => {
+          if (result && !doneRef.current) {
+            doneRef.current = true
+            controls.stop()
+            stopStream()
+            onResult(result.getText())
+          }
+        })
+        zxingControlsRef.current = controls
+      } catch {
+        // ZXing failed to start — manual entry still available
       }
     }
 
@@ -71,6 +95,7 @@ export default function BarcodeScanner({ onResult, onClose }: Props) {
     return () => {
       doneRef.current = true
       cancelAnimationFrame(rafRef.current)
+      try { zxingControlsRef.current?.stop() } catch { /* noop */ }
       stopStream()
     }
   }, [])
@@ -142,19 +167,13 @@ export default function BarcodeScanner({ onResult, onClose }: Props) {
               </div>
             </div>
 
-            {!hasDetector && (
-              <div className="absolute bottom-4 left-4 right-4 bg-black/70 rounded-xl px-4 py-2 text-center">
-                <p className="text-yellow-400 text-xs font-mono">
-                  Tu navegador no soporta detección automática. Ingresa el código manualmente abajo.
-                </p>
-              </div>
-            )}
+
           </div>
 
           {/* Manual entry fallback */}
           <div className="bg-carbon px-4 py-4">
             <p className="text-gray-500 text-xs font-mono text-center mb-3">
-              {hasDetector ? 'O ingresa el código manualmente' : 'Ingresa el código manualmente'}
+              O ingresa el código manualmente
             </p>
             <div className="flex gap-2">
               <input
