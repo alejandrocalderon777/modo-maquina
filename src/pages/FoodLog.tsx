@@ -46,6 +46,8 @@ export default function FoodLog() {
   type PlateState = 'idle' | 'capturing' | 'analyzing' | 'results' | 'error'
   const [plateState, setPlateState] = useState<PlateState>('idle')
   const [plateError, setPlateError] = useState('')
+  const [plateGrams, setPlateGrams] = useState<Record<number,string>>({})
+
   const [plateResults, setPlateResults] = useState<{
     alimentos: { nombre:string; gramos:number; calorias:number; proteinas:number; carbohidratos:number; grasas:number }[]
     totalCalorias:number; totalProteinas:number; totalCarbohidratos:number; totalGrasas:number
@@ -76,6 +78,10 @@ export default function FoodLog() {
         setPlateState('error')
       } else {
         setPlateResults(result)
+        // init editable grams
+        const initGrams: Record<number,string> = {}
+        result.alimentos?.forEach((a: {gramos:number}, i: number) => { initGrams[i] = String(a.gramos) })
+        setPlateGrams(initGrams)
         setPlateState('results')
       }
     } catch {
@@ -86,21 +92,23 @@ export default function FoodLog() {
 
   const addPlateToLog = () => {
     if (!plateResults) return
-    for (const a of plateResults.alimentos) {
+    plateResults.alimentos.forEach((a, idx) => {
+      const editedG = parseFloat(plateGrams[idx] || String(a.gramos)) || a.gramos
+      const ratio = editedG / (a.gramos || 1)
       addFood({
         id: `plate-${Date.now()}-${Math.random()}`,
         foodId: `plate-${a.nombre}`,
         name: a.nombre,
-        grams: a.gramos,
-        cal: a.calorias,
-        prot: a.proteinas,
-        carbs: a.carbohidratos,
-        fat: a.grasas,
+        grams: editedG,
+        cal: Math.round(a.calorias * ratio),
+        prot: Math.round(a.proteinas * ratio),
+        carbs: Math.round(a.carbohidratos * ratio),
+        fat: Math.round(a.grasas * ratio),
         mealType: activeMeal,
         date: today,
         timestamp: Date.now(),
       })
-    }
+    })
     setActiveCard('none')
     setPlateState('idle')
     setPlateResults(null)
@@ -565,18 +573,31 @@ export default function FoodLog() {
               <div className="flex-1 overflow-y-auto px-4 pb-32 pt-4">
                 <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Detectado por IA</p>
                 <div className="space-y-2 mb-4">
-                  {plateResults.alimentos.map((a, i) => (
+                  {plateResults.alimentos.map((a, i) => {
+                    const g = parseFloat(plateGrams[i] || String(a.gramos)) || a.gramos
+                    const r = g / (a.gramos || 1)
+                    return (
                     <div key={i} className="rounded-xl p-3" style={{background:'#1C1F28'}}>
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-white font-body text-sm font-medium">{a.nombre}</p>
-                        <p className="font-mono text-xs text-gray-500">{a.gramos}g</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-white font-body text-sm font-medium flex-1 mr-2">{a.nombre}</p>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={plateGrams[i] ?? a.gramos}
+                            onChange={e => setPlateGrams(prev => ({...prev, [i]: e.target.value}))}
+                            className="w-16 text-right font-mono text-sm rounded-lg px-2 py-1"
+                            style={{background:'#252933', color:'#fff', border:`1px solid ${accentColor}44`}}
+                            min={1} max={2000}
+                          />
+                          <span className="font-mono text-xs text-gray-500">g</span>
+                        </div>
                       </div>
                       <div className="flex gap-3">
                         {[
-                          {l:'Kcal', v:a.calorias, c:accentColor},
-                          {l:'P', v:a.proteinas, c:'#E23A2E'},
-                          {l:'C', v:a.carbohidratos, c:'#6FD3E8'},
-                          {l:'G', v:a.grasas, c:'#DE782C'},
+                          {l:'Kcal', v:a.calorias*r, c:accentColor},
+                          {l:'Prot', v:a.proteinas*r, c:'#E23A2E'},
+                          {l:'Carbs', v:a.carbohidratos*r, c:'#6FD3E8'},
+                          {l:'Grasas', v:a.grasas*r, c:'#DE782C'},
                         ].map(m => (
                           <div key={m.l} className="text-center">
                             <p className="font-mono text-xs font-bold" style={{color:m.c}}>{Math.round(m.v)}</p>
@@ -585,7 +606,8 @@ export default function FoodLog() {
                         ))}
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
                 {/* Total */}
                 <div className="rounded-xl p-3 mb-4" style={{background:`${accentColor}15`, border:`1px solid ${accentColor}33`}}>
@@ -614,7 +636,8 @@ export default function FoodLog() {
                         background: activeMeal === m ? accentColor : '#1C1F28',
                         color: activeMeal === m ? '#111318' : '#888'
                       }}>
-                      {MEAL_ICONS[m]}
+                      <span className="block text-base">{MEAL_ICONS[m]}</span>
+                      <span className="block" style={{fontSize:'9px'}}>{MEAL_LABELS[m]}</span>
                     </button>
                   ))}
                 </div>
