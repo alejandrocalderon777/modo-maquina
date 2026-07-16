@@ -932,7 +932,8 @@ export default function FoodLog() {
         </div>
       )}
 
-      {/* Nav bar — igual que Dashboard para mantenerla visible en Comida */}
+      {/* Nav bar — se oculta cuando hay cámara/modal a pantalla completa */}
+      {!(activeCard === 'plate' || activeCard === 'label' || showModal || scanState === 'scanning') && (
       <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around py-3 z-50"
         style={{ background:'rgba(17,19,24,0.95)', backdropFilter:'blur(20px)', borderTop:'1px solid #1C1F28' }}>
         {([
@@ -952,6 +953,7 @@ export default function FoodLog() {
           </button>
         ))}
       </nav>
+      )}
     </div>
   )
 }
