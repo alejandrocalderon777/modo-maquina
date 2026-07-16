@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore'
 import { LINEAGES, LINEAGE_COACH_PHRASES } from '../assets/data'
-import { MUSCLE_GROUPS, exercisesByMuscle, type MuscleGroup } from '../assets/exercises'
+import { MUSCLE_GROUPS, exercisesByMuscle, exerciseImages, type MuscleGroup } from '../assets/exercises'
+import { ExerciseImage } from '../components/ExerciseImage'
 import { adjustWorkout, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
 import type { Emotion } from '../types'
@@ -531,10 +532,11 @@ export default function Dashboard() {
                           <p className="text-white font-body text-sm font-medium">{ex.name}</p>
                           <span className="font-mono text-xs" style={{color:accentColor}}>{ex.sets}</span>
                         </div>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-2">
                           <span className="font-mono px-1.5 py-0.5 rounded" style={{background:'#1C1F28', color:'#888', fontSize:'9px'}}>{ex.equipment === 'ninguno' ? 'sin equipo' : ex.equipment}</span>
                           <span className="font-mono px-1.5 py-0.5 rounded" style={{background:'#1C1F28', color:'#888', fontSize:'9px'}}>{ex.level}</span>
                         </div>
+                        <ExerciseImage images={exerciseImages(ex.dbId)} name={ex.name} accentColor={accentColor} />
                         <p className="text-gray-500 text-xs font-body leading-relaxed">💡 {ex.tip}</p>
                       </div>
                     ))}
