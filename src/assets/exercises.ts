@@ -84,14 +84,14 @@ export const EXERCISES: Exercise[] = [
 
   // ── GLÚTEOS ──
   { id:'gl1', name:'Hip thrust', muscle:'Glúteos', sets:'4×10-12', equipment:'barra', level:'intermedio', tip:'Apoya la espalda en banco, empuja con talones.', dbId:'Barbell_Hip_Thrust' },
-  { id:'gl2', name:'Sentadilla búlgara', muscle:'Glúteos', sets:'3×12 c/pierna', equipment:'mancuernas', level:'intermedio', tip:'Pie trasero elevado, baja recto.', dbId:'Smith_Single-Leg_Split_Squat' },
+  { id:'gl2', name:'Sentadilla búlgara', muscle:'Glúteos', sets:'3×12 c/pierna', equipment:'mancuernas', level:'intermedio', tip:'Pie trasero elevado, baja recto.' },
   { id:'gl3', name:'Puente de glúteos', muscle:'Glúteos', sets:'4×15', equipment:'ninguno', level:'principiante', tip:'Aprieta glúteos arriba 1 segundo.', dbId:'Barbell_Glute_Bridge' },
   { id:'gl4', name:'Patada de glúteo', muscle:'Glúteos', sets:'3×15 c/pierna', equipment:'banda', level:'principiante', tip:'Extiende la pierna atrás, controla.', dbId:'Glute_Kickback' },
 
   // ── CARDIO ──
   { id:'ca1', name:'Trote continuo', muscle:'Cardio', sets:'25-30 min', equipment:'ninguno', level:'principiante', tip:'Ritmo constante, respira controlado.', dbId:'Running_Treadmill' },
-  { id:'ca2', name:'HIIT intervalos', muscle:'Cardio', sets:'15-20 min', equipment:'ninguno', level:'intermedio', tip:'30seg intenso / 30seg descanso.', dbId:'Front_Box_Jump' },
-  { id:'ca3', name:'Burpees', muscle:'Cardio', sets:'4×15', equipment:'ninguno', level:'avanzado', tip:'Flexión + salto explosivo.', dbId:'Freehand_Jump_Squat' },
+  { id:'ca2', name:'HIIT intervalos', muscle:'Cardio', sets:'15-20 min', equipment:'ninguno', level:'intermedio', tip:'30seg intenso / 30seg descanso.' },
+  { id:'ca3', name:'Burpees', muscle:'Cardio', sets:'4×15', equipment:'ninguno', level:'avanzado', tip:'Flexión + salto explosivo.' },
   { id:'ca4', name:'Saltar la cuerda', muscle:'Cardio', sets:'10-15 min', equipment:'ninguno', level:'principiante', tip:'Saltos bajos, muñecas hacen el trabajo.', dbId:'Rope_Jumping' },
   { id:'ca5', name:'Bicicleta / spinning', muscle:'Cardio', sets:'30-40 min', equipment:'maquina', level:'principiante', tip:'Resistencia media, cadencia constante.', dbId:'Bicycling' },
 ]
