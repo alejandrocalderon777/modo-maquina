@@ -60,7 +60,7 @@ export default function BodyScan({ onPhoto, onClose, accentColor = '#CEFF3C' }: 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-carbon">
+    <div className="fixed inset-0 flex flex-col bg-carbon" style={{zIndex:60}}>
       {/* Hidden file input */}
       <input
         ref={inputRef}

@@ -279,7 +279,7 @@ export default function FoodLog() {
 
       {/* ── Confirm / loading modal ── */}
       {showModal && (
-        <div className="fixed inset-0 z-40 flex flex-col bg-carbon">
+        <div className="fixed inset-0 flex flex-col bg-carbon" style={{zIndex:60}}>
           <div className="flex items-center justify-between px-4 pt-12 pb-4 border-b border-gray-800">
             <h2 className="font-display font-black text-xl text-white uppercase">
               {scanState === 'loading' ? 'Buscando…' : scanState === 'notfound' ? 'No encontrado' : 'Confirmar'}
@@ -771,7 +771,7 @@ export default function FoodLog() {
 
         {/* ── PLATE CAMERA MODAL ── */}
         {(activeCard === 'plate' || activeCard === 'label') && (
-          <div className="fixed inset-0 z-50 flex flex-col" style={{background:'#111318'}}>
+          <div className="fixed inset-0 flex flex-col" style={{background:'#111318', zIndex:60}}>
             {/* Header */}
             <div className="flex items-center justify-between px-4 pt-safe pt-4 pb-3"
               style={{borderBottom:'1px solid #1C1F28'}}>
@@ -892,7 +892,7 @@ export default function FoodLog() {
 
             {/* Bottom CTA */}
             {plateState === 'results' && (
-              <div className="fixed bottom-0 left-0 right-0 p-4" style={{background:'rgba(17,19,24,0.97)'}}>
+              <div className="fixed bottom-0 left-0 right-0 p-4" style={{background:'rgba(17,19,24,0.97)', zIndex:61, paddingBottom:'calc(env(safe-area-inset-bottom, 0px) + 16px)'}}>
                 <button onClick={addPlateToLog}
                   className="w-full py-4 rounded-2xl font-display font-black text-lg"
                   style={{background:accentColor, color:'#111318'}}>

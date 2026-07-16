@@ -114,7 +114,7 @@ export default function BarcodeScanner({ onResult, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black">
+    <div className="fixed inset-0 flex flex-col bg-black" style={{zIndex:60}}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-12 pb-3 bg-carbon">
         <div>
