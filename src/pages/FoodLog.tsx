@@ -476,7 +476,6 @@ export default function FoodLog() {
           ))}
         </div>
       )}
-    </div>
 
       {/* Nav bar — igual que Dashboard para mantenerla visible en Comida */}
       <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around py-3 z-50"
