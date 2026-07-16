@@ -107,11 +107,19 @@ export const useAppStore = create<AppState>()(
           }
         }),
 
-      // Call on app open: increment streak if it's a new day, reset water daily
+      // Call on app open: increment streak if it's a new day, recalculate macros
       checkAndUpdateStreak: () => {
         const state = get()
         const t = today()
-        if (state.lastOpenDate === t) return  // already opened today
+
+        // Always recalculate consumed macros from foodLog (fixes stale values after midnight)
+        const freshMacros = calcDayMacros(state.foodLog, state.macros)
+
+        if (state.lastOpenDate === t) {
+          // Same day — just sync consumed values in case they drifted
+          set({ macros: freshMacros })
+          return
+        }
 
         const yesterday = new Date()
         yesterday.setDate(yesterday.getDate() - 1)
@@ -121,12 +129,12 @@ export const useAppStore = create<AppState>()(
           ? state.streakDays + 1   // consecutive day
           : 1                       // streak broken or first time
 
-        // Also reset water consumed at midnight
+        // New day: reset water to 0, recalculate everything else from today's log (empty)
         set({
           lastOpenDate: t,
           streakDays: newStreak,
           macros: {
-            ...state.macros,
+            ...freshMacros,
             water: { consumed: 0, target: state.macros.water.target },
           },
         })
