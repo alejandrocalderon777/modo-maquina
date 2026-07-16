@@ -298,19 +298,23 @@ export default function FoodLog() {
                     <span className="text-lg">{CATEGORY_ICONS[group.category]}</span>
                     <p className="font-mono text-xs text-gray-400 uppercase tracking-widest">{group.category}</p>
                   </div>
-                  <div className="rounded-2xl overflow-hidden" style={{background:'#1C1F28'}}>
-                    {group.items.map((food, i) => (
+                  <div className="grid grid-cols-2 gap-2">
+                    {group.items.map((food) => (
                       <button key={food.id}
                         onClick={()=>{ setSelected({source:'db',item:food}); setGrams(String(food.serving)); setScanState('confirm') }}
-                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-700 transition-colors active:scale-95"
-                        style={{borderBottom: i < group.items.length-1 ? '1px solid #252933' : 'none'}}>
-                        <div>
-                          <p className="text-white font-body text-sm font-medium">{food.name}</p>
-                          <p className="text-gray-500 text-xs font-mono">{food.prot}g prot · por 100g</p>
+                        className="flex flex-col justify-between p-4 rounded-2xl text-left active:scale-95 transition-transform"
+                        style={{background:'#1C1F28', border:'1px solid #252933'}}>
+                        <div className="mb-3">
+                          <p className="text-white font-display font-bold text-sm leading-tight">{food.name}</p>
+                          <p className="text-gray-500 text-xs font-mono mt-0.5">{food.serving}{food.unit} · porción</p>
                         </div>
-                        <div className="text-right ml-3 flex-shrink-0">
-                          <p className="text-volt font-display font-bold text-sm">{Math.round(food.cal * food.serving / 100)}</p>
-                          <p className="text-gray-600 text-xs font-mono">kcal/{food.serving}{food.unit}</p>
+                        <div>
+                          <p className="text-volt font-display font-black text-xl">{Math.round(food.cal * food.serving / 100)}<span className="text-xs font-mono text-gray-500 ml-1">kcal</span></p>
+                          <div className="flex gap-2 mt-1">
+                            <span className="font-mono text-xs" style={{color:'#E23A2E'}}>{Math.round(food.prot * food.serving / 100)}g P</span>
+                            <span className="font-mono text-xs" style={{color:'#6FD3E8'}}>{Math.round(food.carbs * food.serving / 100)}g C</span>
+                            <span className="font-mono text-xs" style={{color:'#DE782C'}}>{Math.round(food.fat * food.serving / 100)}g G</span>
+                          </div>
                         </div>
                       </button>
                     ))}
