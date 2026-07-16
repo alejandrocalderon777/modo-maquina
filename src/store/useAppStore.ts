@@ -16,10 +16,10 @@ function calcDayMacros(foodLog: FoodEntry[], targets: typeof defaultMacros) {
   const todayEntries = foodLog.filter(e => e.date === today())
   return {
     calories: { consumed: todayEntries.reduce((s, e) => s + e.cal, 0), target: targets.calories.target },
-    protein: { consumed: Math.round(todayEntries.reduce((s, e) => s + e.prot, 0) * 10) / 10, target: targets.protein.target },
-    carbs: { consumed: Math.round(todayEntries.reduce((s, e) => s + e.carbs, 0) * 10) / 10, target: targets.carbs.target },
-    fat: { consumed: Math.round(todayEntries.reduce((s, e) => s + e.fat, 0) * 10) / 10, target: targets.fat.target },
-    water: targets.water,
+    protein:  { consumed: Math.round(todayEntries.reduce((s, e) => s + e.prot, 0)  * 10) / 10, target: targets.protein.target },
+    carbs:    { consumed: Math.round(todayEntries.reduce((s, e) => s + e.carbs, 0) * 10) / 10, target: targets.carbs.target },
+    fat:      { consumed: Math.round(todayEntries.reduce((s, e) => s + e.fat, 0)   * 10) / 10, target: targets.fat.target },
+    water:    targets.water,
   }
 }
 
@@ -27,7 +27,6 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       onboardingComplete: false,
-      currentStep: 0,
       profile: {},
       measurements: {},
       streakDays: 0,
@@ -35,6 +34,8 @@ export const useAppStore = create<AppState>()(
       macros: defaultMacros,
       foodLog: [],
       bodyPhotos: [],
+      lastOpenDate: '',
+      workoutCompletions: {},
 
       setProfile: (data: Partial<UserProfile>) =>
         set((state) => ({ profile: { ...state.profile, ...data } })),
@@ -43,10 +44,13 @@ export const useAppStore = create<AppState>()(
         set((state) => ({ measurements: { ...state.measurements, ...data } })),
 
       completeOnboarding: () =>
-        set({ onboardingComplete: true, streakDays: 1, xpPoints: 100 }),
+        set({ onboardingComplete: true, streakDays: 1, xpPoints: 100, lastOpenDate: today() }),
 
+      // Store emotion with today's date so check-in resets daily
       setEmotion: (emotion: Emotion) =>
-        set((state) => ({ profile: { ...state.profile, emotionToday: emotion } })),
+        set((state) => ({
+          profile: { ...state.profile, emotionToday: emotion, emotionDate: today() }
+        })),
 
       addXP: (points: number) =>
         set((state) => ({ xpPoints: state.xpPoints + points })),
@@ -82,11 +86,51 @@ export const useAppStore = create<AppState>()(
           macros: {
             ...state.macros,
             water: {
-              ...state.macros.water,
-              consumed: Math.min(state.macros.water.consumed + ml, state.macros.water.target),
+              consumed: Math.min(state.macros.water.consumed + ml, state.macros.water.target * 2),
+              target: state.macros.water.target,
             },
           },
         })),
+
+      // Toggle a workout exercise done/undone for a given date
+      toggleWorkout: (date: string, exerciseName: string) =>
+        set((state) => {
+          const current = state.workoutCompletions[date] || []
+          const isDone = current.includes(exerciseName)
+          return {
+            workoutCompletions: {
+              ...state.workoutCompletions,
+              [date]: isDone
+                ? current.filter(n => n !== exerciseName)
+                : [...current, exerciseName],
+            },
+          }
+        }),
+
+      // Call on app open: increment streak if it's a new day, reset water daily
+      checkAndUpdateStreak: () => {
+        const state = get()
+        const t = today()
+        if (state.lastOpenDate === t) return  // already opened today
+
+        const yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+        const yStr = yesterday.toISOString().split('T')[0]
+
+        const newStreak = state.lastOpenDate === yStr
+          ? state.streakDays + 1   // consecutive day
+          : 1                       // streak broken or first time
+
+        // Also reset water consumed at midnight
+        set({
+          lastOpenDate: t,
+          streakDays: newStreak,
+          macros: {
+            ...state.macros,
+            water: { consumed: 0, target: state.macros.water.target },
+          },
+        })
+      },
     }),
     {
       name: 'modomaquina-storage',
@@ -99,6 +143,8 @@ export const useAppStore = create<AppState>()(
         foodLog: state.foodLog,
         macros: state.macros,
         bodyPhotos: state.bodyPhotos,
+        lastOpenDate: state.lastOpenDate,
+        workoutCompletions: state.workoutCompletions,
       }),
     }
   )

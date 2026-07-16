@@ -8,7 +8,8 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
 export interface UserProfile {
   name: string; goal: Goal; level: Level; equipment: Equipment[]
-  daysPerWeek: number; archetype: Archetype; lineage: Lineage; emotionToday?: Emotion
+  daysPerWeek: number; archetype: Archetype; lineage: Lineage
+  emotionToday?: Emotion; emotionDate?: string  // emotionDate = YYYY-MM-DD
   sex?: 'male' | 'female'; age?: number
 }
 export interface Measurements {
@@ -39,11 +40,13 @@ export interface FoodEntry {
 }
 
 export interface AppState {
-  onboardingComplete: boolean; currentStep: number
+  onboardingComplete: boolean
   profile: Partial<UserProfile>; measurements: Partial<Measurements>
   streakDays: number; xpPoints: number; macros: DayMacros
   foodLog: FoodEntry[]
   bodyPhotos: BodyPhoto[]
+  lastOpenDate: string          // YYYY-MM-DD — for streak tracking
+  workoutCompletions: Record<string, string[]>  // date → array of exercise names done
 
   setProfile: (data: Partial<UserProfile>) => void
   setMeasurements: (data: Partial<Measurements>) => void
@@ -55,6 +58,8 @@ export interface AppState {
   addWater: (ml: number) => void
   addBodyPhoto: (photo: BodyPhoto) => void
   setMacroTargets: (targets: { calories: number; protein: number; carbs: number; fat: number }) => void
+  toggleWorkout: (date: string, exerciseName: string) => void
+  checkAndUpdateStreak: () => void
 }
 export interface LineageConfig {
   id: Lineage; name: string; fullName: string; color: string

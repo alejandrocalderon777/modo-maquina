@@ -3,24 +3,24 @@ import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore'
 
 export default function Auth() {
-  const navigate = useNavigate()
+  const navigate   = useNavigate()
   const setProfile = useAppStore((s) => s.setProfile)
-  const [name, setName] = useState('')
+  const [name, setName]   = useState('')
   const [email, setEmail] = useState('')
-  const [mode, setMode] = useState<'register' | 'login'>('register')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim() && mode === 'register') return
+    if (!name.trim()) return
     setLoading(true)
-    setProfile({ name: name.trim() })
+    setProfile({ name: name.trim() })   // email saved to profile for future use
     setTimeout(() => navigate('/onboarding'), 800)
   }
 
   return (
     <div className="min-h-screen bg-carbon flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8">
+
         {/* Logo */}
         <div className="mb-8">
           <img
@@ -34,65 +34,48 @@ export default function Auth() {
 
         <div className="text-center mb-8">
           <h1 className="font-display font-black text-3xl text-white uppercase tracking-wide mb-1">
-            {mode === 'register' ? 'Comienza aquí' : 'Bienvenido de vuelta'}
+            Comienza aquí
           </h1>
-          <p className="text-gray-500 text-sm font-body">
-            {mode === 'register' ? 'Tu modo máquina empieza hoy' : 'El modo máquina te espera'}
-          </p>
+          <p className="text-gray-500 text-sm font-body">Tu modo máquina empieza hoy</p>
         </div>
 
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-          {mode === 'register' && (
-            <div>
-              <label className="block font-mono text-xs uppercase tracking-widest text-gray-500 mb-2">
-                ¿Cómo te llamas?
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Tu nombre"
-                required
-                className="w-full bg-carbon-light border border-gray-700 rounded-xl px-4 py-3.5 text-white font-body placeholder-gray-600 focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-colors"
-              />
-            </div>
-          )}
+          <div>
+            <label className="block font-mono text-xs uppercase tracking-widest text-gray-500 mb-2">
+              ¿Cómo te llamas?
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Tu nombre"
+              required
+              autoFocus
+              className="w-full bg-carbon-light border border-gray-700 rounded-xl px-4 py-3.5 text-white font-body placeholder-gray-600 focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-colors"
+            />
+          </div>
 
           <div>
             <label className="block font-mono text-xs uppercase tracking-widest text-gray-500 mb-2">
-              Email
+              Email <span className="text-gray-700 normal-case">(opcional)</span>
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@email.com"
-              required
               className="w-full bg-carbon-light border border-gray-700 rounded-xl px-4 py-3.5 text-white font-body placeholder-gray-600 focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-colors"
             />
           </div>
 
-          {mode === 'login' && (
-            <div>
-              <label className="block font-mono text-xs uppercase tracking-widest text-gray-500 mb-2">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full bg-carbon-light border border-gray-700 rounded-xl px-4 py-3.5 text-white font-body placeholder-gray-600 focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-colors"
-              />
-            </div>
-          )}
-
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !name.trim()}
             className="w-full py-4 rounded-xl font-display font-bold text-lg uppercase tracking-widest transition-all disabled:opacity-50 mt-2"
             style={{
-              background: loading ? '#333' : '#CEFF3C',
+              background: loading || !name.trim() ? '#333' : '#CEFF3C',
               color: '#111318',
-              boxShadow: loading ? 'none' : '0 0 20px rgba(206,255,60,0.4)',
+              boxShadow: loading || !name.trim() ? 'none' : '0 0 20px rgba(206,255,60,0.4)',
             }}
           >
             {loading ? (
@@ -100,10 +83,8 @@ export default function Auth() {
                 <span className="w-4 h-4 border-2 border-carbon border-t-transparent rounded-full animate-spin" />
                 Activando...
               </span>
-            ) : mode === 'register' ? (
-              'ACTIVAR MODO MÁQUINA'
             ) : (
-              'ENTRAR'
+              'ACTIVAR MODO MÁQUINA'
             )}
           </button>
         </form>
@@ -127,19 +108,11 @@ export default function Auth() {
           Continuar con Google
         </button>
 
-        <p className="mt-6 text-gray-600 text-sm font-body">
-          {mode === 'register' ? '¿Ya tienes cuenta?' : '¿Eres nuevo?'}{' '}
-          <button
-            className="text-volt underline"
-            onClick={() => setMode(mode === 'register' ? 'login' : 'register')}
-          >
-            {mode === 'register' ? 'Iniciar sesión' : 'Regístrate'}
-          </button>
-        </p>
       </div>
 
       <p className="text-center text-xs text-gray-700 font-mono pb-6 px-6">
-        Al registrarte aceptas nuestros Términos. Esta app orienta hábitos saludables y no reemplaza a profesionales de la salud.
+        Tus datos se guardan localmente en tu dispositivo.
+        Esta app orienta hábitos saludables y no reemplaza a profesionales de la salud.
       </p>
     </div>
   )

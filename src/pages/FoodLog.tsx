@@ -1,7 +1,7 @@
 import { useState, useMemo, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore'
-import { FOODS, calcMacros, type FoodItem } from '../assets/foods'
+import { FOODS, type FoodItem } from '../assets/foods'
 import { lookupBarcode, type OFFProduct } from '../utils/openFoodFacts'
 import { RECIPES, filterRecipes, type Recipe } from '../assets/recipes'
 import type { MealType, FoodEntry } from '../types'
