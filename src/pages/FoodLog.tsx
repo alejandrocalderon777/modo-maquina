@@ -1,9 +1,9 @@
-import { useState, useMemo, lazy, Suspense } from 'react'
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore'
 import { LINEAGES } from '../assets/data'
 import { FOODS, type FoodItem } from '../assets/foods'
-import { lookupBarcode, type OFFProduct } from '../utils/openFoodFacts'
+import { lookupBarcode, searchOFF, type OFFProduct } from '../utils/openFoodFacts'
 import { RECIPES, filterRecipes, type Recipe } from '../assets/recipes'
 import type { MealType, FoodEntry } from '../types'
 
@@ -33,6 +33,8 @@ export default function FoodLog() {
   const accentColor = lineage?.color || '#CEFF3C'
   const [activeCard, setActiveCard] = useState<ActiveCard>('none')
   const [query, setQuery] = useState('')
+  const [onlineResults, setOnlineResults] = useState<OFFProduct[]>([])
+  const [onlineSearching, setOnlineSearching] = useState(false)
   const [activeMeal, setActiveMeal] = useState<MealType>('lunch')
   const [selected, setSelected] = useState<SelectedFood | null>(null)
   const [grams, setGrams] = useState('')
@@ -131,6 +133,28 @@ export default function FoodLog() {
   }, [query])
 
   const recipes = useMemo(() => filterRecipes(query, recipeCat === 'Todos' ? undefined : recipeCat), [query, recipeCat])
+
+  // ── Online food search (Open Food Facts) — supermarket database ──
+  useEffect(() => {
+    const q = query.trim()
+    if (activeCard !== 'foods' || q.length < 3) {
+      setOnlineResults([])
+      setOnlineSearching(false)
+      return
+    }
+    setOnlineSearching(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await searchOFF(q)
+        setOnlineResults(res)
+      } catch {
+        setOnlineResults([])
+      } finally {
+        setOnlineSearching(false)
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [query, activeCard])
 
   // ── Barcode flow ─────────────────────────────────────────────
   const handleBarcode = async (code: string) => {
@@ -349,7 +373,7 @@ export default function FoodLog() {
             </div>
             <div className="flex-1">
               <p className="text-white font-display font-bold text-base">Buscar alimento</p>
-              <p className="text-gray-500 text-xs font-body mt-0.5">Base de datos con más de 50 alimentos</p>
+              <p className="text-gray-500 text-xs font-body mt-0.5">Base local + supermercado (millones de productos)</p>
               <p className="text-xs font-mono mt-1" style={{color:'#CEFF3C'}}>Disponible ✓</p>
             </div>
             <svg className="transition-transform flex-shrink-0" style={{transform: activeCard==='foods'?'rotate(90deg)':'rotate(0deg)'}}
@@ -388,6 +412,46 @@ export default function FoodLog() {
                   </div>
                 </div>
               ))}
+
+              {/* ── Online supermarket results ── */}
+              {query.trim().length >= 3 && (
+                <div className="mb-3">
+                  <div className="flex items-center gap-1.5 mb-1.5 px-1">
+                    <span className="text-base">🛒</span>
+                    <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Supermercado</p>
+                    {onlineSearching && (
+                      <span className="w-3 h-3 border-2 border-volt border-t-transparent rounded-full animate-spin ml-1"/>
+                    )}
+                  </div>
+
+                  {!onlineSearching && onlineResults.length === 0 && (
+                    <p className="text-gray-600 text-xs font-mono px-1 py-2">Sin resultados en línea. Prueba otro término.</p>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {onlineResults.map((prod, i)=>(
+                      <button key={`off-${i}`}
+                        onClick={()=>{ setSelected({source:'barcode',item:prod}); setGrams(String(prod.serving)); setScanState('confirm') }}
+                        className="flex flex-col justify-between p-3 rounded-xl text-left active:scale-95 transition-transform"
+                        style={{background:'#252933', border:'1px solid #2e3140'}}>
+                        <div className="flex items-start gap-2 mb-2">
+                          {prod.image && (
+                            <img src={prod.image} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-body text-xs font-semibold leading-tight">{prod.name}</p>
+                            {prod.brand && <p className="text-gray-600 font-mono" style={{fontSize:'9px'}}>{prod.brand}</p>}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-volt font-display font-black text-base">{Math.round(prod.cal*prod.serving/100)}<span className="text-xs font-mono text-gray-500 ml-1">kcal</span></p>
+                          <p className="text-gray-600 text-xs font-mono">{prod.serving}{prod.unit} · {Math.round(prod.prot*prod.serving/100)}g P</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
