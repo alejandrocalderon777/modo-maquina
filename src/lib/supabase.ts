@@ -3,7 +3,65 @@ import { createClient } from '@supabase/supabase-js'
 const SUPABASE_URL = 'https://weagmhvylvuthqmutgay.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndlYWdtaHZ5bHZ1dGhxbXV0Z2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNjQwNzEsImV4cCI6MjA5OTc0MDA3MX0.a7EqYZq8w-oOXiNHnLFTAUBwTBggkCH3NKvoxBOctRg'
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+})
+
+// ── Auth helpers ─────────────────────────────────────────────
+export async function signUp(email: string, password: string, name: string) {
+  const { data, error } = await supabase.auth.signUp({
+    email, password,
+    options: { data: { name } },
+  })
+  if (error) throw error
+  return data
+}
+
+export async function signIn(email: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) throw error
+  return data
+}
+
+export async function signOut() {
+  await supabase.auth.signOut()
+}
+
+export async function getSession() {
+  const { data } = await supabase.auth.getSession()
+  return data.session
+}
+
+// ── Cloud sync (whole-state JSONB) ───────────────────────────
+export async function loadUserData(): Promise<Record<string, unknown> | null> {
+  const session = await getSession()
+  if (!session) return null
+  const { data, error } = await supabase
+    .from('user_data')
+    .select('data')
+    .eq('user_id', session.user.id)
+    .maybeSingle()
+  if (error) { console.error('loadUserData', error); return null }
+  return (data?.data as Record<string, unknown>) || null
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+export async function saveUserData(state: Record<string, unknown>) {
+  const session = await getSession()
+  if (!session) return
+  // debounce writes
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(async () => {
+    const { error } = await supabase
+      .from('user_data')
+      .upsert({ user_id: session.user.id, data: state, updated_at: new Date().toISOString() })
+    if (error) console.error('saveUserData', error)
+  }, 1500)
+}
 
 export async function analyzePlate(
   imageBase64: string,

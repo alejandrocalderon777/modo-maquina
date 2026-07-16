@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AppState, UserProfile, Measurements, Emotion, FoodEntry, BodyPhoto } from '../types'
+import { saveUserData, loadUserData } from '../lib/supabase'
 
 const today = () => new Date().toISOString().split('T')[0]
 
@@ -157,3 +158,40 @@ export const useAppStore = create<AppState>()(
     }
   )
 )
+
+// ── Cloud sync ───────────────────────────────────────────────
+let hydrating = false
+
+function snapshot(s: AppState) {
+  return {
+    onboardingComplete: s.onboardingComplete,
+    profile: s.profile,
+    measurements: s.measurements,
+    streakDays: s.streakDays,
+    xpPoints: s.xpPoints,
+    foodLog: s.foodLog,
+    macros: s.macros,
+    bodyPhotos: s.bodyPhotos,
+    lastOpenDate: s.lastOpenDate,
+    workoutCompletions: s.workoutCompletions,
+  }
+}
+
+// Push local changes to the cloud (debounced inside saveUserData; no-op if logged out)
+useAppStore.subscribe((state) => {
+  if (hydrating) return
+  saveUserData(snapshot(state as AppState))
+})
+
+// Pull cloud data after login and merge into the store
+export async function hydrateFromCloud() {
+  const remote = await loadUserData()
+  if (!remote) {
+    // First login on this account: push whatever is local now
+    saveUserData(snapshot(useAppStore.getState()))
+    return
+  }
+  hydrating = true
+  useAppStore.setState(remote as Partial<AppState>)
+  hydrating = false
+}

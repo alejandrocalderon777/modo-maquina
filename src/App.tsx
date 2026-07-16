@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Splash from './pages/Splash'
 import Auth from './pages/Auth'
@@ -7,8 +8,17 @@ import LineageSelect from './pages/LineageSelect'
 import MeasurementsPage from './pages/Measurements'
 import Dashboard from './pages/Dashboard'
 import FoodLog from './pages/FoodLog'
+import { getSession } from './lib/supabase'
+import { hydrateFromCloud } from './store/useAppStore'
 
 export default function App() {
+  useEffect(() => {
+    // Restore cloud data for a returning logged-in user
+    getSession().then((session) => {
+      if (session) hydrateFromCloud()
+    })
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>
