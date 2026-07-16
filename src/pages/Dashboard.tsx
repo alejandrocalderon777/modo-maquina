@@ -238,32 +238,107 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Workout preview */}
-      <div className="mx-4 mb-4 rounded-2xl overflow-hidden bg-gray-900">
-        <div className="px-4 py-3 flex items-center justify-between border-b border-gray-800">
-          <div>
-            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Hoy toca</p>
-            <p className="font-display font-bold text-white text-base uppercase">Fuerza — Tren superior</p>
-          </div>
-          <button onClick={() => setActiveTab('workout')}
-            className="px-3 py-1.5 rounded-lg font-mono text-xs"
+      {/* Workout preview — misma estructura que bloque de nutrición */}
+      <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Hoy toca</p>
+          <button onClick={() => setActiveTab('workout')} className="font-mono text-xs px-3 py-1 rounded-lg"
             style={{ background:`${accentColor}20`, color:accentColor }}>
             Ver todo
           </button>
         </div>
-        <div className="h-1 bg-gray-800">
-          <div className="h-full transition-all duration-500"
-            style={{ width:`${(doneCount/WORKOUT_PLAN.length)*100}%`, background:accentColor }} />
+
+        {/* Anillo grande + 3 ejercicios (espejo de CalorieRing + MacroRings) */}
+        <div className="flex items-center justify-between">
+          {/* Anillo de progreso de sesión */}
+          {(() => {
+            const size = 90
+            const r = (size - 12) / 2
+            const circ = 2 * Math.PI * r
+            const offset = circ * (1 - doneCount / WORKOUT_PLAN.length)
+            return (
+              <div className="relative flex items-center justify-center" style={{ width:size, height:size }}>
+                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                  <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1C1F28" strokeWidth="10" />
+                  <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={accentColor} strokeWidth="10"
+                    strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
+                    className="progress-ring-circle" />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="font-mono font-bold text-2xl" style={{ color:accentColor }}>{doneCount}</span>
+                  <span className="font-mono text-xs text-gray-500">/{WORKOUT_PLAN.length}</span>
+                  <span className="font-mono text-xs text-gray-400 uppercase tracking-wider">ejerc.</span>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* 3 mini anillos de ejercicios (espejo de MacroRings) */}
+          <div className="flex gap-3">
+            {WORKOUT_PLAN.slice(0, 3).map(w => {
+              const done = todayDone.includes(w.name)
+              const col = done ? accentColor : '#3a3d47'
+              const size = 56
+              const r = (size - 8) / 2
+              const circ = 2 * Math.PI * r
+              return (
+                <div key={w.name} className="flex flex-col items-center gap-1">
+                  <div className="relative" style={{ width:size, height:size }}>
+                    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#252933" strokeWidth="6" />
+                      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={col} strokeWidth="6"
+                        strokeLinecap="round" strokeDasharray={circ}
+                        strokeDashoffset={done ? 0 : circ}
+                        className="progress-ring-circle" />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-mono font-bold" style={{ color:col }}>
+                        {done ? '✓' : '·'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-mono text-gray-400 uppercase tracking-wider leading-tight">
+                      {w.name.split(' ')[0].substring(0, 6)}
+                    </p>
+                    <p className="text-xs font-mono text-gray-600">{w.sets}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
-        <div className="px-4 py-3 flex items-center justify-between">
-          <p className="text-gray-400 text-sm font-body">{doneCount}/{WORKOUT_PLAN.length} ejercicios completados</p>
+
+        {/* Barra de XP + botón (espejo de barra de agua) */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">⚡</span>
+              <span className="font-mono text-xs text-gray-500">XP sesión</span>
+            </div>
+            <span className="font-mono text-xs" style={{ color:accentColor }}>
+              {doneCount * 25}/{WORKOUT_PLAN.length * 25} XP
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-gray-800 overflow-hidden mb-2">
+            <div className="h-full rounded-full transition-all duration-500"
+              style={{ width:`${(doneCount/WORKOUT_PLAN.length)*100}%`, background:accentColor }} />
+          </div>
           <button onClick={() => setActiveTab('workout')}
-            className="px-4 py-2 rounded-xl font-display font-bold text-sm uppercase"
-            style={{ background:doneCount===WORKOUT_PLAN.length ? accentColor : `${accentColor}22`,
-                     color:doneCount===WORKOUT_PLAN.length ? '#111318' : accentColor }}>
-            {doneCount === WORKOUT_PLAN.length ? '✓ Completado' : '▶ Iniciar'}
+            className="w-full py-1.5 rounded-lg font-mono text-xs font-bold uppercase tracking-widest text-center transition-all active:scale-95"
+            style={{ background: doneCount===WORKOUT_PLAN.length ? accentColor : `${accentColor}18`,
+                     color: doneCount===WORKOUT_PLAN.length ? '#111318' : accentColor,
+                     border:`1px solid ${accentColor}30` }}>
+            {doneCount === WORKOUT_PLAN.length ? '✓ Sesión completada' : '▶ Iniciar entrenamiento'}
           </button>
         </div>
+
+        {doneCount === 0 && (
+          <p className="text-xs font-body text-gray-600 mt-3 italic">
+            💡 Sin ejercicios hoy — toca Iniciar para comenzar.
+          </p>
+        )}
       </div>
     </>
   )
