@@ -571,7 +571,7 @@ export default function FoodLog() {
             </div>
             <div className="flex-1">
               <p className="text-white font-display font-bold text-base">Recetas saludables</p>
-              <p className="text-gray-500 text-xs font-body mt-0.5">28 recetas + generador con IA</p>
+              <p className="text-gray-500 text-xs font-body mt-0.5">28 recetas + generador ✨ IA</p>
               <p className="text-xs font-mono mt-1" style={{color:'#6FD3E8'}}>Disponible ✓</p>
             </div>
             <svg className="transition-transform flex-shrink-0" style={{transform: activeCard==='recipes'?'rotate(90deg)':'rotate(0deg)'}}
@@ -748,9 +748,9 @@ export default function FoodLog() {
             📸
           </div>
           <div className="flex-1">
-            <p className="text-white font-display font-bold text-base">Foto del plato</p>
+            <p className="text-white font-display font-bold text-base">Foto del plato <span className="ml-1">✨</span></p>
             <p className="text-gray-400 text-xs font-body mt-0.5">IA identifica automáticamente los alimentos</p>
-            <p className="font-mono text-xs mt-1" style={{color:'#6FD3E8'}}>Claude Vision · activo ✓</p>
+            <p className="font-mono text-xs mt-1" style={{color:'#6FD3E8'}}>✨ Claude Vision · activo ✓</p>
           </div>
         </button>
 
@@ -763,9 +763,9 @@ export default function FoodLog() {
             🏷️
           </div>
           <div className="flex-1">
-            <p className="text-white font-display font-bold text-base">Etiqueta nutricional</p>
+            <p className="text-white font-display font-bold text-base">Etiqueta nutricional <span className="ml-1">✨</span></p>
             <p className="text-gray-400 text-xs font-body mt-0.5">Fotografía la tabla de información nutricional</p>
-            <p className="font-mono text-xs mt-1" style={{color:'#DE782C'}}>Claude Vision · activo ✓</p>
+            <p className="font-mono text-xs mt-1" style={{color:'#DE782C'}}>✨ Claude Vision · activo ✓</p>
           </div>
         </button>
 
@@ -798,7 +798,7 @@ export default function FoodLog() {
               <div className="flex-1 flex flex-col items-center justify-center gap-4">
                 <div className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin"
                   style={{borderColor:`${accentColor}44`, borderTopColor:'transparent'}}/>
-                <p className="font-mono text-sm" style={{color:accentColor}}>Analizando con Claude Vision…</p>
+                <p className="font-mono text-sm" style={{color:accentColor}}>✨ Analizando con Claude Vision…</p>
                 <p className="font-mono text-xs text-gray-600">Identificando alimentos y macros</p>
               </div>
             )}
@@ -817,7 +817,7 @@ export default function FoodLog() {
             {/* RESULTS */}
             {plateState === 'results' && plateResults && (
               <div className="flex-1 overflow-y-auto px-4 pb-32 pt-4">
-                <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Detectado por IA</p>
+                <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">✨ Detectado por IA</p>
                 <div className="space-y-2 mb-4">
                   {plateResults.alimentos.map((a, i) => {
                     const g = parseFloat(plateGrams[i] || String(a.gramos)) || a.gramos
