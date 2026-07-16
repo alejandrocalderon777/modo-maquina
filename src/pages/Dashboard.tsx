@@ -59,6 +59,7 @@ export default function Dashboard() {
   )
 
   const [activeTab, setActiveTab] = useState<Tab>('home')
+  const [progressPeriod, setProgressPeriod] = useState<'day'|'week'|'month'|'year'>('week')
 
   // Workout state from store (persists across renders)
   const todayDone = workoutCompletions[todayStr] || []
@@ -410,10 +411,330 @@ export default function Dashboard() {
   )
 
   // ── PROGRESS tab ─────────────────────────────────────────────
+  // helpers
+  const getNDays = (n: number) => {
+    const days: string[] = []
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i)
+      days.push(d.toISOString().split('T')[0])
+    }
+    return days
+  }
+  const dayLabel = (date: string) => {
+    const d = new Date(date + 'T12:00:00')
+    return d.toLocaleDateString('es-CL', { weekday:'short' }).slice(0,3)
+  }
+  const dayMonthLabel = (date: string) => {
+    const d = new Date(date + 'T12:00:00')
+    return d.toLocaleDateString('es-CL', { day:'numeric', month:'short' })
+  }
+  const dayCal  = (date: string) => foodLog.filter(e => e.date === date).reduce((s,e) => s + e.cal, 0)
+  const dayProt = (date: string) => foodLog.filter(e => e.date === date).reduce((s,e) => s + e.prot, 0)
+  const dayExDone = (date: string) => (workoutCompletions[date] || []).length
+  const dayHasFood = (date: string) => foodLog.some(e => e.date === date)
+
+  const last7  = getNDays(7)
+  const last30 = getNDays(30)
+
+  // yearly stats
+  const allDates = Array.from(new Set(foodLog.map(e => e.date)))
+  const allWodDates = Object.keys(workoutCompletions).filter(d => (workoutCompletions[d] || []).length > 0)
+  const totalSessions = allWodDates.length
+  const totalNutritionDays = allDates.length
+
+  const maxCalWeek = Math.max(...last7.map(dayCal), macros.calories.target)
+  const maxProtWeek = Math.max(...last7.map(dayProt), macros.protein.target)
+
   const ProgressContent = (
     <>
+      {/* Period selector */}
+      <div className="mx-4 mb-4 flex gap-2">
+        {(['day','week','month','year'] as const).map(p => {
+          const label = { day:'Día', week:'Semana', month:'Mes', year:'Año' }[p]
+          return (
+            <button key={p} onClick={() => setProgressPeriod(p)}
+              className="flex-1 py-2 rounded-xl font-mono text-xs font-bold transition-all"
+              style={{
+                background: progressPeriod === p ? accentColor : '#1C1F28',
+                color: progressPeriod === p ? '#111318' : '#666',
+                border: `1px solid ${progressPeriod === p ? accentColor : '#252933'}`
+              }}>
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* ── DÍA ── */}
+      {progressPeriod === 'day' && (
+        <>
+          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Macros de hoy</p>
+            <div className="space-y-3">
+              {[
+                { l:'Calorías', v:macros.calories.consumed, t:macros.calories.target, u:'kcal', c:'#CEFF3C' },
+                { l:'Proteína', v:macros.protein.consumed,  t:macros.protein.target,  u:'g',    c:'#E23A2E' },
+                { l:'Carbos',   v:macros.carbs.consumed,    t:macros.carbs.target,    u:'g',    c:'#6FD3E8' },
+                { l:'Grasas',   v:macros.fat.consumed,      t:macros.fat.target,      u:'g',    c:'#DE782C' },
+              ].map(m => {
+                const pct = Math.min(100, Math.round((m.v / m.t) * 100))
+                return (
+                  <div key={m.l}>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-mono text-xs text-gray-400">{m.l}</p>
+                      <p className="font-mono text-xs" style={{ color:m.c }}>{m.v}/{m.t}{m.u} · {pct}%</p>
+                    </div>
+                    <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width:`${pct}%`, background:m.c }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="mt-4 pt-3 border-t border-gray-800">
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-mono text-xs text-gray-400">💧 Agua</p>
+                <p className="font-mono text-xs" style={{ color:'#6FD3E8' }}>{macros.water.consumed}/{macros.water.target}ml</p>
+              </div>
+              <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
+                <div className="h-full rounded-full" style={{ width:`${Math.min(100,Math.round((macros.water.consumed/macros.water.target)*100))}%`, background:'#6FD3E8' }} />
+              </div>
+            </div>
+          </div>
+          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Entreno de hoy</p>
+            {WORKOUT_PLAN.map(w => {
+              const done = todayDone.includes(w.name)
+              return (
+                <div key={w.name} className="flex items-center gap-3 py-2 border-b border-gray-800 last:border-0">
+                  <div className="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0"
+                    style={{ borderColor: done ? accentColor : '#333', background: done ? accentColor : 'transparent' }}>
+                    {done && <span className="text-carbon text-xs font-black" style={{ fontSize:'9px' }}>✓</span>}
+                  </div>
+                  <p className={`flex-1 font-body text-sm ${done ? 'line-through text-gray-600' : 'text-white'}`}>{w.name}</p>
+                  <p className="font-mono text-xs text-gray-600">{w.sets}</p>
+                </div>
+              )
+            })}
+            <div className="mt-3 pt-2 flex items-center justify-between">
+              <p className="font-mono text-xs text-gray-600">{doneCount}/{WORKOUT_PLAN.length} completados</p>
+              <p className="font-mono text-xs" style={{ color:accentColor }}>+{doneCount*25} XP</p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── SEMANA ── */}
+      {progressPeriod === 'week' && (
+        <>
+          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Calorías · 7 días</p>
+              <p className="font-mono text-xs" style={{ color:accentColor }}>meta {macros.calories.target} kcal</p>
+            </div>
+            <div className="space-y-2">
+              {last7.map(date => {
+                const cal = dayCal(date)
+                const pct = maxCalWeek > 0 ? (cal / maxCalWeek) * 100 : 0
+                const onTarget = cal >= macros.calories.target * 0.85
+                const isToday = date === todayStr
+                const color = isToday ? '#6FD3E8' : onTarget ? accentColor : cal === 0 ? '#252933' : '#DE782C'
+                return (
+                  <div key={date} className="flex items-center gap-2">
+                    <p className="font-mono text-xs w-8 flex-shrink-0" style={{ color: isToday ? '#6FD3E8' : '#555' }}>
+                      {isToday ? 'Hoy' : dayLabel(date)}
+                    </p>
+                    <div className="flex-1 h-5 rounded-md bg-gray-800 overflow-hidden">
+                      {cal > 0 && <div className="h-full rounded-md transition-all" style={{ width:`${pct}%`, background:color }} />}
+                    </div>
+                    <p className="font-mono text-xs w-14 text-right flex-shrink-0" style={{ color: cal === 0 ? '#333' : color }}>
+                      {cal === 0 ? '—' : `${Math.round(cal)} kcal`}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Proteína · 7 días</p>
+              <p className="font-mono text-xs" style={{ color:'#E23A2E' }}>meta {macros.protein.target}g</p>
+            </div>
+            <div className="space-y-2">
+              {last7.map(date => {
+                const prot = Math.round(dayProt(date))
+                const pct = maxProtWeek > 0 ? (prot / maxProtWeek) * 100 : 0
+                const isToday = date === todayStr
+                const color = isToday ? '#6FD3E8' : '#E23A2E'
+                return (
+                  <div key={date} className="flex items-center gap-2">
+                    <p className="font-mono text-xs w-8 flex-shrink-0" style={{ color: isToday ? '#6FD3E8' : '#555' }}>
+                      {isToday ? 'Hoy' : dayLabel(date)}
+                    </p>
+                    <div className="flex-1 h-5 rounded-md bg-gray-800 overflow-hidden">
+                      {prot > 0 && <div className="h-full rounded-md" style={{ width:`${pct}%`, background:color }} />}
+                    </div>
+                    <p className="font-mono text-xs w-10 text-right flex-shrink-0" style={{ color: prot === 0 ? '#333' : color }}>
+                      {prot === 0 ? '—' : `${prot}g`}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Consistencia · 7 días</p>
+            <div className="flex gap-2">
+              {last7.map(date => {
+                const exDone = dayExDone(date) > 0
+                const hasFood = dayHasFood(date)
+                const isToday = date === todayStr
+                const bg = exDone && hasFood ? accentColor
+                  : exDone ? '#6FD3E8'
+                  : hasFood ? '#DE782C'
+                  : '#252933'
+                return (
+                  <div key={date} className="flex-1 flex flex-col items-center gap-1.5">
+                    <div className="w-full aspect-square rounded-lg" style={{ background: bg }} />
+                    <p className="font-mono text-center" style={{ fontSize:'8px', color: isToday ? '#6FD3E8' : '#555' }}>
+                      {isToday ? 'hoy' : dayLabel(date)}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-4 mt-3 pt-2 border-t border-gray-800">
+              {[
+                { c:accentColor, l:'Completo' },
+                { c:'#6FD3E8',   l:'Solo entreno' },
+                { c:'#DE782C',   l:'Solo comida' },
+                { c:'#252933',   l:'Descanso' },
+              ].map(s => (
+                <div key={s.l} className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded" style={{ background:s.c }} />
+                  <p className="font-mono text-gray-600" style={{ fontSize:'8px' }}>{s.l}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── MES ── */}
+      {progressPeriod === 'month' && (
+        <>
+          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Actividad · 30 días</p>
+            <div className="grid gap-1.5" style={{ gridTemplateColumns:'repeat(7, 1fr)' }}>
+              {last30.map(date => {
+                const exDone = dayExDone(date)
+                const hasFood = dayHasFood(date)
+                const isToday = date === todayStr
+                const bg = exDone > 0 && hasFood ? accentColor
+                  : exDone > 0 ? '#6FD3E8'
+                  : hasFood ? `${accentColor}55`
+                  : '#1C1F28'
+                return (
+                  <div key={date} title={dayMonthLabel(date)}
+                    className="rounded"
+                    style={{ background:bg, aspectRatio:'1', border: isToday ? `1px solid ${accentColor}` : '1px solid transparent' }} />
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-4 mt-3 pt-2 border-t border-gray-800">
+              {[
+                { c:accentColor, l:'Entreno + comida' },
+                { c:'#6FD3E8',   l:'Solo entreno' },
+                { c:`${accentColor}55`, l:'Solo comida' },
+              ].map(s => (
+                <div key={s.l} className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded" style={{ background:s.c }} />
+                  <p className="font-mono text-gray-600" style={{ fontSize:'8px' }}>{s.l}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mx-4 mb-4 grid grid-cols-2 gap-3">
+            {[
+              { l:'Días activos', v:`${last30.filter(d => dayExDone(d) > 0 || dayHasFood(d)).length}`, u:'/30', c:accentColor },
+              { l:'Días con entreno', v:`${last30.filter(d => dayExDone(d) > 0).length}`, u:'/30', c:'#6FD3E8' },
+              { l:'Días con comida', v:`${last30.filter(d => dayHasFood(d)).length}`, u:'/30', c:'#E23A2E' },
+              { l:'Racha actual', v:`${streakDays}`, u:' días', c:'#DE782C' },
+            ].map(s => (
+              <div key={s.l} className="rounded-xl p-3" style={{ background:'#1C1F28' }}>
+                <p className="font-display font-black text-2xl" style={{ color:s.c }}>
+                  {s.v}<span className="text-sm font-mono text-gray-500">{s.u}</span>
+                </p>
+                <p className="font-mono text-xs text-gray-500 mt-0.5">{s.l}</p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── AÑO ── */}
+      {progressPeriod === 'year' && (
+        <>
+          <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+            <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-4">Adherencia global</p>
+            <div className="flex justify-around">
+              {(() => {
+                const daysSince = Math.max(1, Math.round((Date.now() - new Date(Math.min(...foodLog.map(e => new Date(e.date).getTime()), Date.now())).getTime()) / 86400000))
+                const wodPct  = Math.min(100, Math.round((allWodDates.length / daysSince) * 100))
+                const foodPct = Math.min(100, Math.round((allDates.length / daysSince) * 100))
+                const items = [
+                  { label:'Entrenos', pct:wodPct,  color:'#CEFF3C' },
+                  { label:'Nutrición', pct:foodPct, color:'#E23A2E' },
+                  { label:'Racha', pct:Math.min(100, streakDays * 3), color:'#6FD3E8' },
+                ]
+                return items.map(({ label, pct, color }) => {
+                  const size = 80
+                  const r = (size - 10) / 2
+                  const circ = 2 * Math.PI * r
+                  const offset = circ * (1 - pct / 100)
+                  return (
+                    <div key={label} className="flex flex-col items-center gap-2">
+                      <div className="relative" style={{ width:size, height:size }}>
+                        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1C1F28" strokeWidth="9" />
+                          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="9"
+                            strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
+                            className="progress-ring-circle" />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="font-mono font-bold text-lg" style={{ color }}>{pct}%</span>
+                        </div>
+                      </div>
+                      <p className="font-mono text-xs text-gray-400">{label}</p>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+          </div>
+
+          <div className="mx-4 mb-4 grid grid-cols-2 gap-3">
+            {[
+              { l:'Sesiones totales', v:`${totalSessions}`, c:accentColor },
+              { l:'Días con registro', v:`${totalNutritionDays}`, c:'#E23A2E' },
+              { l:'Racha máxima', v:`${streakDays}d`, c:'#6FD3E8' },
+              { l:'XP acumulados', v:`${xpPoints}`, c:'#DE782C' },
+            ].map(s => (
+              <div key={s.l} className="rounded-xl p-3" style={{ background:'#1C1F28' }}>
+                <p className="font-display font-black text-2xl" style={{ color:s.c }}>{s.v}</p>
+                <p className="font-mono text-xs text-gray-500 mt-0.5">{s.l}</p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Medidas — siempre visible */}
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-        <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Medidas actuales</p>
+        <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Medidas corporales</p>
         {measurements.weight ? (
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -443,29 +764,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-        <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Objetivos diarios</p>
-        <div className="space-y-2.5">
-          {[
-            { l:'Calorías',      v:macros.calories.consumed, t:macros.calories.target, u:'kcal', c:'#CEFF3C' },
-            { l:'Proteína',      v:macros.protein.consumed,  t:macros.protein.target,  u:'g',    c:'#E23A2E' },
-            { l:'Carbohidratos', v:macros.carbs.consumed,    t:macros.carbs.target,    u:'g',    c:'#6FD3E8' },
-            { l:'Grasas',        v:macros.fat.consumed,      t:macros.fat.target,      u:'g',    c:'#DE782C' },
-          ].map(m => (
-            <div key={m.l}>
-              <div className="flex items-center justify-between mb-1">
-                <p className="font-mono text-xs text-gray-400">{m.l}</p>
-                <p className="font-mono text-xs" style={{ color:m.c }}>{m.v}/{m.t}{m.u}</p>
-              </div>
-              <div className="h-1.5 rounded-full bg-gray-800 overflow-hidden">
-                <div className="h-full rounded-full transition-all"
-                  style={{ width:`${Math.min(100,(m.v/m.t)*100)}%`, background:m.c }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
+      {/* Fotos — siempre visible */}
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
         <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Fotos corporales</p>
         {bodyPhotos.length === 0 ? (
@@ -474,12 +773,45 @@ export default function Dashboard() {
             <p className="text-gray-500 text-sm font-body">Sin fotos de progreso</p>
             <p className="text-gray-700 text-xs font-mono mt-1">Las fotos se toman en el paso de medidas</p>
           </div>
+        ) : bodyPhotos.length >= 2 ? (
+          <>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {[bodyPhotos[bodyPhotos.length - 1], bodyPhotos[0]].map((p, i) => (
+                <div key={p.id} className="relative rounded-xl overflow-hidden aspect-[3/4]"
+                  style={{ border: i === 1 ? `1.5px solid ${accentColor}` : '1.5px solid #252933' }}>
+                  <img src={p.dataUrl} alt="Progreso" className="w-full h-full object-cover object-top" />
+                  <div className="absolute bottom-0 inset-x-0 px-2 py-2" style={{ background:'rgba(0,0,0,0.6)' }}>
+                    <p className="text-white font-mono text-xs">
+                      {new Date(p.date).toLocaleDateString('es-CL', { day:'2-digit', month:'short' })}
+                    </p>
+                    <p className="font-mono text-xs" style={{ color: i === 1 ? accentColor : '#888' }}>
+                      {i === 0 ? 'Inicio' : 'Hoy'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {bodyPhotos.length > 2 && (
+              <div className="grid grid-cols-3 gap-2">
+                {bodyPhotos.slice(1, bodyPhotos.length - 1).slice(-3).map(p => (
+                  <div key={p.id} className="relative rounded-lg overflow-hidden aspect-square">
+                    <img src={p.dataUrl} alt="Progreso" className="w-full h-full object-cover object-top" />
+                    <div className="absolute bottom-0 inset-x-0 px-1 py-1" style={{ background:'rgba(0,0,0,0.5)' }}>
+                      <p className="text-white font-mono" style={{ fontSize:'8px' }}>
+                        {new Date(p.date).toLocaleDateString('es-CL', { day:'2-digit', month:'short' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {bodyPhotos.slice(0,4).map((p, i) => (
+            {bodyPhotos.map((p, i) => (
               <div key={p.id} className="relative rounded-xl overflow-hidden aspect-[3/4]">
                 <img src={p.dataUrl} alt="Progreso" className="w-full h-full object-cover object-top" />
-                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-2">
+                <div className="absolute bottom-0 inset-x-0 px-2 py-2" style={{ background:'rgba(0,0,0,0.6)' }}>
                   <p className="text-white font-mono text-xs">
                     {new Date(p.date).toLocaleDateString('es-CL', { day:'2-digit', month:'short' })}
                   </p>
