@@ -4,6 +4,7 @@ import { useAppStore } from '../store/useAppStore'
 import { LINEAGES, LINEAGE_COACH_PHRASES } from '../assets/data'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
 import type { Emotion } from '../types'
+import { ShimejiAvatar } from '../components/ShimejiAvatar'
 
 const EMOTION_CONFIG: Record<number, { emoji: string; label: string; color: string }> = {
   1: { emoji: '😔', label: 'Muy mal',       color: '#E23A2E' },
@@ -978,6 +979,24 @@ export default function Dashboard() {
         {activeTab === 'progress' && ProgressContent}
         {activeTab === 'avatar'   && AvatarContent}
       </div>
+
+      {/* Shimeji avatar */}
+      <ShimejiAvatar
+        avatarSrc={avatarSrc}
+        accentColor={accentColor}
+        phrases={[
+          '¡Vamos, dale!',
+          '¡Tú puedes!',
+          '100% hoy 💪',
+          '¡A comer bien!',
+          '¡Sin excusas!',
+          '¡Modo Máquina!',
+          `+${doneCount * 25} XP`,
+          '¡Racha activa!',
+          '¡Fuego! 🔥',
+          '¡Eso es!',
+        ]}
+      />
 
       {/* FAB — Registrar comida */}
       <button onClick={() => navigate('/food-log')}

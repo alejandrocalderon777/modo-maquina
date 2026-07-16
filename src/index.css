@@ -79,3 +79,9 @@ body {
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
 }
+
+/* Shimeji speech bubble */
+@keyframes shimeji-bubble {
+  from { opacity: 0; transform: translateX(-50%) scale(0.7); }
+  to   { opacity: 1; transform: translateX(-50%) scale(1); }
+}
