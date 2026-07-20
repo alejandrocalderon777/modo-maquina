@@ -46,6 +46,10 @@ export interface AppState {
   foodLog: FoodEntry[]
   bodyPhotos: BodyPhoto[]
   lastOpenDate: string          // YYYY-MM-DD — for streak tracking
+  maxStreak: number             // best streak ever
+  streakProtectors: number      // comodines disponibles
+  protectorsMonth: string       // YYYY-MM del último refill
+  protectorUsedDate?: string    // fecha en que se usó el último protector (para avisar)
   workoutCompletions: Record<string, string[]>  // date → array of exercise names done
 
   setProfile: (data: Partial<UserProfile>) => void
@@ -60,6 +64,7 @@ export interface AppState {
   setMacroTargets: (targets: { calories: number; protein: number; carbs: number; fat: number }) => void
   toggleWorkout: (date: string, exerciseName: string) => void
   checkAndUpdateStreak: () => void
+  dismissProtectorNotice: () => void
 }
 export interface LineageConfig {
   id: Lineage; name: string; fullName: string; color: string

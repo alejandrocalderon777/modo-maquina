@@ -40,6 +40,10 @@ export default function Dashboard() {
   const addWater             = useAppStore((s) => s.addWater)
   const toggleWorkout        = useAppStore((s) => s.toggleWorkout)
   const checkAndUpdateStreak = useAppStore((s) => s.checkAndUpdateStreak)
+  const maxStreak              = useAppStore((s) => s.maxStreak)
+  const streakProtectors       = useAppStore((s) => s.streakProtectors)
+  const protectorUsedDate      = useAppStore((s) => s.protectorUsedDate)
+  const dismissProtectorNotice = useAppStore((s) => s.dismissProtectorNotice)
 
   const todayStr = new Date().toISOString().split('T')[0]
 
@@ -189,6 +193,11 @@ export default function Dashboard() {
             {streakDays}
           </div>
           <p className="font-mono text-xs text-gray-600 mt-0.5">racha</p>
+          <div className="flex gap-0.5 mt-0.5">
+            {[0,1].map(i => (
+              <span key={i} style={{ fontSize:'8px', opacity: i < streakProtectors ? 1 : 0.25 }}>🛡️</span>
+            ))}
+          </div>
         </div>
         <div className="flex flex-col items-center">
           <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center font-mono text-xs font-bold text-volt">
@@ -207,6 +216,21 @@ export default function Dashboard() {
   // ── HOME tab ─────────────────────────────────────────────────
   const HomeContent = (
     <>
+      {/* Aviso: se usó un protector para salvar la racha */}
+      {protectorUsedDate === todayStr && (
+        <div className="mx-4 mb-4 rounded-2xl p-4 flex items-start gap-3"
+          style={{ background:'#6FD3E815', border:'1px solid #6FD3E844' }}>
+          <span className="text-2xl flex-shrink-0">🛡️</span>
+          <div className="flex-1">
+            <p className="text-white font-display font-bold text-sm">Racha salvada</p>
+            <p className="text-gray-400 text-xs font-body mt-0.5 leading-relaxed">
+              Faltaste un día, pero usé un protector para mantener tu racha de {streakDays} días.
+              Te quedan {streakProtectors} este mes.
+            </p>
+          </div>
+          <button onClick={dismissProtectorNotice} className="text-gray-600 text-lg leading-none">×</button>
+        </div>
+      )}
       {/* Lineage badge */}
       <div className="px-4 mb-4">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono"
@@ -1099,6 +1123,50 @@ export default function Dashboard() {
             <p className="font-mono text-xs text-gray-500 mt-1">{s.l}</p>
           </div>
         ))}
+      </div>
+
+      {/* Racha y protectores */}
+      <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+        <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Racha</p>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="text-center">
+            <p className="font-display font-black text-3xl" style={{ color:accentColor }}>{streakDays}</p>
+            <p className="font-mono text-xs text-gray-500">actual</p>
+          </div>
+          <div className="w-px h-10 bg-gray-800" />
+          <div className="text-center">
+            <p className="font-display font-black text-3xl text-white">{maxStreak || streakDays}</p>
+            <p className="font-mono text-xs text-gray-500">récord</p>
+          </div>
+          <div className="flex-1" />
+          {streakDays > 0 && streakDays >= (maxStreak || 0) && (
+            <span className="font-mono px-2 py-1 rounded" style={{ background:`${accentColor}22`, color:accentColor, fontSize:'9px' }}>
+              ¡NUEVO RÉCORD!
+            </span>
+          )}
+        </div>
+
+        <div className="pt-3 border-t border-gray-800">
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-mono text-xs text-gray-400">🛡️ Protectores de racha</p>
+            <p className="font-mono text-xs" style={{ color:'#6FD3E8' }}>{streakProtectors}/2 este mes</p>
+          </div>
+          <div className="flex gap-2 mb-2">
+            {[0,1].map(i => (
+              <div key={i} className="flex-1 rounded-lg py-2 flex items-center justify-center gap-1.5"
+                style={{ background: i < streakProtectors ? '#6FD3E818' : '#1C1F28',
+                         border: `1px solid ${i < streakProtectors ? '#6FD3E844' : '#252933'}` }}>
+                <span style={{ fontSize:'14px', opacity: i < streakProtectors ? 1 : 0.25 }}>🛡️</span>
+                <span className="font-mono text-xs" style={{ color: i < streakProtectors ? '#6FD3E8' : '#444' }}>
+                  {i < streakProtectors ? 'listo' : 'usado'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-gray-600 text-xs font-body leading-relaxed">
+            Si faltas un día, un protector salva tu racha automáticamente. Se recargan cada mes.
+          </p>
+        </div>
       </div>
 
       {/* Cuenta */}

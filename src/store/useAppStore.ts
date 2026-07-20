@@ -4,6 +4,7 @@ import type { AppState, UserProfile, Measurements, Emotion, FoodEntry, BodyPhoto
 import { saveUserData, loadUserData } from '../lib/supabase'
 
 const today = () => new Date().toISOString().split('T')[0]
+const MAX_PROTECTORS = 2
 
 const defaultMacros = {
   calories: { consumed: 0, target: 2200 },
@@ -36,6 +37,10 @@ export const useAppStore = create<AppState>()(
       foodLog: [],
       bodyPhotos: [],
       lastOpenDate: '',
+      maxStreak: 0,
+      streakProtectors: 2,
+      protectorsMonth: new Date().toISOString().slice(0, 7),
+      protectorUsedDate: undefined,
       workoutCompletions: {},
 
       setProfile: (data: Partial<UserProfile>) =>
@@ -122,24 +127,55 @@ export const useAppStore = create<AppState>()(
           return
         }
 
-        const yesterday = new Date()
-        yesterday.setDate(yesterday.getDate() - 1)
-        const yStr = yesterday.toISOString().split('T')[0]
+        // ── Monthly protector refill (2 per month, no accumulation) ──
+        const thisMonth = t.slice(0, 7)
+        let protectors = state.streakProtectors
+        let protectorsMonth = state.protectorsMonth
+        if (protectorsMonth !== thisMonth) {
+          protectors = MAX_PROTECTORS
+          protectorsMonth = thisMonth
+        }
 
-        const newStreak = state.lastOpenDate === yStr
-          ? state.streakDays + 1   // consecutive day
-          : 1                       // streak broken or first time
+        // ── How many days were missed? ──
+        let missedDays = 0
+        if (state.lastOpenDate) {
+          const last = new Date(state.lastOpenDate + 'T12:00:00')
+          const now  = new Date(t + 'T12:00:00')
+          const diff = Math.round((now.getTime() - last.getTime()) / 86400000)
+          missedDays = Math.max(0, diff - 1)   // 0 if yesterday, 1+ if there's a gap
+        }
 
-        // New day: reset water to 0, recalculate everything else from today's log (empty)
+        let newStreak: number
+        let protectorUsedDate = state.protectorUsedDate
+
+        if (!state.lastOpenDate) {
+          newStreak = 1                                  // first ever open
+        } else if (missedDays === 0) {
+          newStreak = state.streakDays + 1               // consecutive day
+        } else if (protectors >= missedDays) {
+          // Protectors cover the gap — streak survives
+          protectors -= missedDays
+          protectorUsedDate = t
+          newStreak = state.streakDays + 1
+        } else {
+          newStreak = 1                                  // streak broken
+        }
+
         set({
           lastOpenDate: t,
           streakDays: newStreak,
+          maxStreak: Math.max(state.maxStreak || 0, newStreak),
+          streakProtectors: protectors,
+          protectorsMonth,
+          protectorUsedDate,
           macros: {
             ...freshMacros,
             water: { consumed: 0, target: state.macros.water.target },
           },
         })
       },
+
+      dismissProtectorNotice: () => set({ protectorUsedDate: undefined }),
     }),
     {
       name: 'modomaquina-storage',
@@ -153,6 +189,10 @@ export const useAppStore = create<AppState>()(
         macros: state.macros,
         bodyPhotos: state.bodyPhotos,
         lastOpenDate: state.lastOpenDate,
+        maxStreak: state.maxStreak,
+        streakProtectors: state.streakProtectors,
+        protectorsMonth: state.protectorsMonth,
+        protectorUsedDate: state.protectorUsedDate,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -173,6 +213,10 @@ function snapshot(s: AppState) {
     macros: s.macros,
     bodyPhotos: s.bodyPhotos,
     lastOpenDate: s.lastOpenDate,
+    maxStreak: s.maxStreak,
+    streakProtectors: s.streakProtectors,
+    protectorsMonth: s.protectorsMonth,
+    protectorUsedDate: s.protectorUsedDate,
     workoutCompletions: s.workoutCompletions,
   }
 }
