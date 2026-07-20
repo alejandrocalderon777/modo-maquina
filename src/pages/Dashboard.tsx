@@ -4,6 +4,8 @@ import { useAppStore } from '../store/useAppStore'
 import { LINEAGES, LINEAGE_COACH_PHRASES } from '../assets/data'
 import { MUSCLE_GROUPS, exercisesByMuscle, exerciseImages, type MuscleGroup } from '../assets/exercises'
 import { ExerciseImage } from '../components/ExerciseImage'
+import { AchievementToast } from '../components/AchievementToast'
+import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
 import type { Emotion } from '../types'
@@ -44,6 +46,10 @@ export default function Dashboard() {
   const streakProtectors       = useAppStore((s) => s.streakProtectors)
   const protectorUsedDate      = useAppStore((s) => s.protectorUsedDate)
   const dismissProtectorNotice = useAppStore((s) => s.dismissProtectorNotice)
+  const unlockedAchievements   = useAppStore((s) => s.unlockedAchievements)
+  const pendingAchievements    = useAppStore((s) => s.pendingAchievements)
+  const checkAchievements      = useAppStore((s) => s.checkAchievements)
+  const dismissAchievementNotice = useAppStore((s) => s.dismissAchievementNotice)
 
   const todayStr = new Date().toISOString().split('T')[0]
 
@@ -115,6 +121,12 @@ export default function Dashboard() {
     setEmotion(e)
     addXP(10)
   }
+
+  // Evaluate achievements whenever progress-relevant state changes
+  useEffect(() => {
+    checkAchievements()
+  }, [streakDays, maxStreak, xpPoints, foodLog.length, bodyPhotos.length,
+      todayDone.length, macros.protein.consumed, macros.water.consumed, streakProtectors])
 
   const handleToggleWorkout = (name: string) => {
     const wasDone = todayDone.includes(name)
@@ -1125,6 +1137,60 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Insignias */}
+      <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Insignias</p>
+          <p className="font-mono text-xs" style={{ color:accentColor }}>
+            {(unlockedAchievements || []).length}/{ACHIEVEMENTS.length}
+          </p>
+        </div>
+
+        {/* Progreso global */}
+        <div className="h-2 rounded-full bg-gray-800 overflow-hidden mb-4">
+          <div className="h-full rounded-full transition-all"
+            style={{ width:`${((unlockedAchievements || []).length / ACHIEVEMENTS.length) * 100}%`, background:accentColor }} />
+        </div>
+
+        {(['Racha','Nutrición','Entrenamiento','Progreso','Especial'] as Category[]).map(cat => {
+          const list = ACHIEVEMENTS.filter(a => a.category === cat)
+          const got  = list.filter(a => (unlockedAchievements || []).includes(a.id)).length
+          return (
+            <div key={cat} className="mb-4 last:mb-0">
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-mono text-xs text-gray-400 uppercase tracking-widest">{cat}</p>
+                <p className="font-mono text-xs text-gray-600">{got}/{list.length}</p>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {list.map(a => {
+                  const unlocked = (unlockedAchievements || []).includes(a.id)
+                  const color = TIER_COLORS[a.tier]
+                  const prog = !unlocked && a.progress ? a.progress(useAppStore.getState()) : null
+                  return (
+                    <div key={a.id} className="rounded-xl p-2 flex flex-col items-center text-center"
+                      style={{ background: unlocked ? `${color}14` : '#1C1F28',
+                               border:`1px solid ${unlocked ? color + '55' : '#252933'}` }}>
+                      <span style={{ fontSize:22, filter: unlocked ? 'none' : 'grayscale(1)', opacity: unlocked ? 1 : 0.3 }}>
+                        {a.emoji}
+                      </span>
+                      <p className="font-mono mt-1 leading-tight"
+                        style={{ fontSize:'8px', color: unlocked ? color : '#555' }}>
+                        {a.name}
+                      </p>
+                      {prog && prog.current > 0 && (
+                        <div className="w-full h-0.5 rounded-full bg-gray-800 mt-1 overflow-hidden">
+                          <div className="h-full" style={{ width:`${(prog.current/prog.target)*100}%`, background:'#555' }} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
       {/* Racha y protectores */}
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
         <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Racha</p>
@@ -1239,6 +1305,9 @@ export default function Dashboard() {
           style={{ top:'-6px', right:'-6px', width:'20px', height:'20px', borderRadius:'50%',
             background:'#E23A2E', color:'#fff', fontSize:'14px', lineHeight:1 }}>+</span>
       </button>
+
+      {/* Toast de logros desbloqueados */}
+      <AchievementToast ids={pendingAchievements || []} onDismiss={dismissAchievementNotice} />
 
       {/* Nav bar */}
       <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around py-3"

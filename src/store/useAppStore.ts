@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AppState, UserProfile, Measurements, Emotion, FoodEntry, BodyPhoto } from '../types'
 import { saveUserData, loadUserData } from '../lib/supabase'
+import { evaluateAchievements, getAchievement } from '../assets/achievements'
 
 const today = () => new Date().toISOString().split('T')[0]
 const MAX_PROTECTORS = 2
@@ -41,6 +42,8 @@ export const useAppStore = create<AppState>()(
       streakProtectors: 2,
       protectorsMonth: new Date().toISOString().slice(0, 7),
       protectorUsedDate: undefined,
+      unlockedAchievements: [],
+      pendingAchievements: [],
       workoutCompletions: {},
 
       setProfile: (data: Partial<UserProfile>) =>
@@ -176,6 +179,20 @@ export const useAppStore = create<AppState>()(
       },
 
       dismissProtectorNotice: () => set({ protectorUsedDate: undefined }),
+
+      checkAchievements: () => {
+        const state = get()
+        const newly = evaluateAchievements(state, state.unlockedAchievements || [])
+        if (newly.length === 0) return
+        const bonusXP = newly.reduce((sum, id) => sum + (getAchievement(id)?.xp || 0), 0)
+        set({
+          unlockedAchievements: [...(state.unlockedAchievements || []), ...newly],
+          pendingAchievements: [...(state.pendingAchievements || []), ...newly],
+          xpPoints: state.xpPoints + bonusXP,
+        })
+      },
+
+      dismissAchievementNotice: () => set({ pendingAchievements: [] }),
     }),
     {
       name: 'modomaquina-storage',
@@ -193,6 +210,7 @@ export const useAppStore = create<AppState>()(
         streakProtectors: state.streakProtectors,
         protectorsMonth: state.protectorsMonth,
         protectorUsedDate: state.protectorUsedDate,
+        unlockedAchievements: state.unlockedAchievements,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -217,6 +235,7 @@ function snapshot(s: AppState) {
     streakProtectors: s.streakProtectors,
     protectorsMonth: s.protectorsMonth,
     protectorUsedDate: s.protectorUsedDate,
+    unlockedAchievements: s.unlockedAchievements,
     workoutCompletions: s.workoutCompletions,
   }
 }
