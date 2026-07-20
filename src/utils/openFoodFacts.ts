@@ -2,6 +2,9 @@ export interface OFFProduct {
   name: string; brand: string
   cal: number; prot: number; carbs: number; fat: number
   serving: number; unit: string; image?: string
+  // quality data (per 100g) for the nutritional verdict
+  sugar?: number; satFat?: number; salt?: number; fiber?: number
+  nutriscore?: string; nova?: number
 }
 
 async function fetchOFF(url: string): Promise<Response> {
@@ -56,6 +59,12 @@ export async function lookupBarcode(barcode: string): Promise<OFFProduct | null>
         serving: servingG > 0 ? servingG : 100,
         unit: servingRaw.toLowerCase().includes('ml') ? 'ml' : 'g',
         image: p.image_thumb_url || p.image_front_thumb_url || p.image_url || undefined,
+        sugar:  n['sugars_100g']        ?? undefined,
+        satFat: n['saturated-fat_100g'] ?? undefined,
+        salt:   n['salt_100g']          ?? undefined,
+        fiber:  n['fiber_100g']         ?? undefined,
+        nutriscore: p.nutriscore_grade || p.nutrition_grade_fr || undefined,
+        nova: p.nova_group ? Number(p.nova_group) : undefined,
       }
     } catch {
       // timeout or network error — try next URL
@@ -70,8 +79,8 @@ export async function searchOFF(query: string): Promise<OFFProduct[]> {
   const q = encodeURIComponent(query.trim())
   // Search Chilean products first, then world
   const urls = [
-    `https://cl.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=25&fields=product_name,product_name_es,brands,nutriments,serving_size,image_thumb_url,image_front_thumb_url`,
-    `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=25&fields=product_name,product_name_es,brands,nutriments,serving_size,image_thumb_url,image_front_thumb_url`,
+    `https://cl.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=25&fields=product_name,product_name_es,brands,nutriments,serving_size,image_thumb_url,image_front_thumb_url,nutriscore_grade,nova_group`,
+    `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=25&fields=product_name,product_name_es,brands,nutriments,serving_size,image_thumb_url,image_front_thumb_url,nutriscore_grade,nova_group`,
   ]
 
   for (const url of urls) {
@@ -108,6 +117,12 @@ export async function searchOFF(query: string): Promise<OFFProduct[]> {
           serving: servingG > 0 ? servingG : 100,
           unit: servingRaw.toLowerCase().includes('ml') ? 'ml' : 'g',
           image: p.image_thumb_url || p.image_front_thumb_url || undefined,
+          sugar:  n['sugars_100g']        ?? undefined,
+          satFat: n['saturated-fat_100g'] ?? undefined,
+          salt:   n['salt_100g']          ?? undefined,
+          fiber:  n['fiber_100g']         ?? undefined,
+          nutriscore: p.nutriscore_grade || undefined,
+          nova: p.nova_group ? Number(p.nova_group) : undefined,
         })
       }
       if (results.length > 0) return results

@@ -10,6 +10,8 @@ import type { MealType, FoodEntry } from '../types'
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'))
 import { analyzePlate, generateRecipe, lookupFoodAI, type AIFood } from '../lib/supabase'
 import { PlateCamera } from '../components/PlateCamera'
+import { NutriVerdict } from '../components/NutriVerdict'
+import { computeVerdict, verdictFromOFF } from '../utils/nutriScore'
 
 const MEAL_LABELS: Record<MealType, string> = { breakfast:'Desayuno', lunch:'Almuerzo', dinner:'Cena', snack:'Snack' }
 const MEAL_ICONS: Record<MealType, string>  = { breakfast:'🌅', lunch:'☀️', dinner:'🌙', snack:'⚡' }
@@ -265,6 +267,37 @@ export default function FoodLog() {
   const preview = getPreview()
 
   // ── Confirm modal (barcode + recipe) ─────────────────────────
+  // ── Nutritional verdict for the selected item ──────────────
+  const selectedVerdict = (() => {
+    if (!selected) return null
+    if (selected.source === 'barcode') {
+      const p = selected.item as OFFProduct
+      const input = { cal:p.cal, prot:p.prot, carbs:p.carbs, fat:p.fat,
+                      sugar:p.sugar, satFat:p.satFat, salt:p.salt, fiber:p.fiber }
+      return p.nutriscore ? verdictFromOFF(p.nutriscore, input) : computeVerdict(input)
+    }
+    if (selected.source === 'db') {
+      const f = selected.item as FoodItem
+      return computeVerdict({ cal:f.cal, prot:f.prot, carbs:f.carbs, fat:f.fat })
+    }
+    const r = selected.item as Recipe
+    // recipe macros are per portion; normalise to 100g using a 350g plate assumption
+    const k = 100 / 350
+    return computeVerdict({ cal:r.cal*k, prot:r.prot*k, carbs:r.carbs*k, fat:r.fat*k })
+  })()
+
+  const coachVerdictLine = (() => {
+    if (!selectedVerdict) return undefined
+    const n = profile.name?.split(' ')[0] || ''
+    switch (selectedVerdict.grade) {
+      case 'A': return `Excelente elección${n ? ', ' + n : ''}. Esto suma directo a tu objetivo.`
+      case 'B': return 'Buena opción. Entra sin problema en tu día.'
+      case 'C': return 'Aceptable. Equilíbralo con verduras o proteína magra en la próxima comida.'
+      case 'D': return 'Bajo puntaje. Cuida la porción y compénsalo con algo más limpio después.'
+      case 'E': return 'Muy bajo puntaje. Si puedes, busca una alternativa con menos azúcar y sodio.'
+    }
+  })()
+
   const showModal = scanState === 'confirm' || scanState === 'loading' || scanState === 'notfound' ||
     (selected !== null && (selected.source === 'barcode' || selected.source === 'recipe'))
 
@@ -332,6 +365,14 @@ export default function FoodLog() {
                   </div>
                 </div>
               </div>
+
+              {/* Nutritional verdict */}
+              {selectedVerdict && (
+                <div className="px-4 pt-4">
+                  <NutriVerdict verdict={selectedVerdict} coachLine={coachVerdictLine}
+                    nova={selected.source === 'barcode' ? (selected.item as OFFProduct).nova : undefined} />
+                </div>
+              )}
 
               {/* Quantity (not for recipes — fixed 1 portion) */}
               {selected.source !== 'recipe' && (
@@ -499,7 +540,10 @@ export default function FoodLog() {
                         </div>
                         <div>
                           <p className="text-volt font-display font-black text-base">{Math.round(prod.cal*prod.serving/100)}<span className="text-xs font-mono text-gray-500 ml-1">kcal</span></p>
-                          <p className="text-gray-600 text-xs font-mono">{prod.serving}{prod.unit} · {Math.round(prod.prot*prod.serving/100)}g P</p>
+                          <p className="text-gray-600 text-xs font-mono mb-1">{prod.serving}{prod.unit} · {Math.round(prod.prot*prod.serving/100)}g P</p>
+                          <NutriVerdict compact verdict={prod.nutriscore
+                            ? verdictFromOFF(prod.nutriscore, { cal:prod.cal, prot:prod.prot, carbs:prod.carbs, fat:prod.fat, sugar:prod.sugar, satFat:prod.satFat, salt:prod.salt, fiber:prod.fiber })
+                            : computeVerdict({ cal:prod.cal, prot:prod.prot, carbs:prod.carbs, fat:prod.fat, sugar:prod.sugar, satFat:prod.satFat, salt:prod.salt, fiber:prod.fiber })} />
                         </div>
                       </button>
                     ))}
@@ -818,6 +862,27 @@ export default function FoodLog() {
             {plateState === 'results' && plateResults && (
               <div className="flex-1 overflow-y-auto px-4 pb-32 pt-4">
                 <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">✨ Detectado por IA</p>
+
+                {/* Veredicto nutricional del plato completo */}
+                {(() => {
+                  const totalG = plateResults.alimentos.reduce((s, a, i) => {
+                    const g = parseFloat(plateGrams[i] || String(a.gramos)) || a.gramos
+                    return s + g
+                  }, 0) || 100
+                  const k = 100 / totalG
+                  const v = computeVerdict({
+                    cal: plateResults.totalCalorias * k,
+                    prot: plateResults.totalProteinas * k,
+                    carbs: plateResults.totalCarbohidratos * k,
+                    fat: plateResults.totalGrasas * k,
+                  })
+                  const line = v.grade === 'A' || v.grade === 'B'
+                    ? 'Buen plato. Así se construye el modo máquina.'
+                    : v.grade === 'C'
+                      ? 'Plato aceptable. Súmale verduras o baja la porción de lo más calórico.'
+                      : 'Plato de bajo puntaje. Ajusta la porción o cámbialo por una versión más limpia.'
+                  return <div className="mb-3"><NutriVerdict verdict={v} coachLine={line} /></div>
+                })()}
                 <div className="space-y-2 mb-4">
                   {plateResults.alimentos.map((a, i) => {
                     const g = parseFloat(plateGrams[i] || String(a.gramos)) || a.gramos
