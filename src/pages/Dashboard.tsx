@@ -5,6 +5,7 @@ import { LINEAGES, LINEAGE_COACH_PHRASES } from '../assets/data'
 import { MUSCLE_GROUPS, exercisesByMuscle, exerciseImages, type MuscleGroup } from '../assets/exercises'
 import { ExerciseImage } from '../components/ExerciseImage'
 import { AchievementToast } from '../components/AchievementToast'
+import { WhyRecorder } from '../components/WhyRecorder'
 import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
@@ -50,6 +51,11 @@ export default function Dashboard() {
   const pendingAchievements    = useAppStore((s) => s.pendingAchievements)
   const checkAchievements      = useAppStore((s) => s.checkAchievements)
   const dismissAchievementNotice = useAppStore((s) => s.dismissAchievementNotice)
+  const whyRecording       = useAppStore((s) => s.whyRecording)
+  const showWhyReminder    = useAppStore((s) => s.showWhyReminder)
+  const setWhyRecording    = useAppStore((s) => s.setWhyRecording)
+  const dismissWhyReminder = useAppStore((s) => s.dismissWhyReminder)
+  const [whyOpen, setWhyOpen] = useState(false)
 
   const todayStr = new Date().toISOString().split('T')[0]
 
@@ -277,6 +283,54 @@ export default function Dashboard() {
           <button onClick={() => setEmotionLocal(null)}
             className="text-gray-700 font-mono text-xs hover:text-gray-500">cambiar</button>
         </div>
+      )}
+
+      {/* El avatar te recuerda tu porqué tras una ausencia */}
+      {showWhyReminder && whyRecording && (
+        <div className="mx-4 mb-4 rounded-2xl p-4"
+          style={{ background:`linear-gradient(135deg, ${accentColor}18, ${accentColor}08)`, border:`1px solid ${accentColor}55` }}>
+          <div className="flex items-start gap-3 mb-3">
+            <div className="rounded-xl overflow-hidden flex-shrink-0" style={{ width:44, height:44, border:`2px solid ${accentColor}` }}>
+              <img src={avatarSrc} alt="Coach" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex-1">
+              <p className="font-mono text-xs uppercase tracking-widest mb-1" style={{ color:accentColor }}>
+                Volviste — escucha esto
+              </p>
+              <p className="text-white text-sm font-body leading-relaxed">
+                "Tú mismo me pediste que te recordara esto."
+              </p>
+            </div>
+            <button onClick={dismissWhyReminder} className="text-gray-600 text-lg leading-none">×</button>
+          </div>
+
+          {whyRecording.audio ? (
+            <audio controls src={whyRecording.audio} className="w-full" style={{ height:38 }} />
+          ) : (
+            <p className="text-white text-sm font-body italic leading-relaxed px-1">
+              "{whyRecording.text}"
+            </p>
+          )}
+          <p className="font-mono text-xs text-gray-600 mt-2">
+            Grabado el {new Date(whyRecording.date + 'T12:00:00').toLocaleDateString('es-CL', { day:'numeric', month:'long' })}
+          </p>
+        </div>
+      )}
+
+      {/* Día 1: invita a grabar el porqué */}
+      {!whyRecording && (
+        <button onClick={() => setWhyOpen(true)}
+          className="mx-4 mb-4 w-[calc(100%-2rem)] rounded-2xl p-4 flex items-center gap-3 text-left active:scale-98 transition-transform"
+          style={{ background:'#1C1F28', border:`1px dashed ${accentColor}55` }}>
+          <span className="text-2xl">🎙️</span>
+          <div className="flex-1">
+            <p className="text-white font-display font-bold text-sm">Graba tu porqué</p>
+            <p className="text-gray-500 text-xs font-body mt-0.5">
+              30 segundos que te van a rescatar el día que quieras rendirte
+            </p>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
       )}
 
       {/* Coach message */}
@@ -1137,6 +1191,30 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Tu porqué */}
+      <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Tu porqué</p>
+          <button onClick={() => setWhyOpen(true)} className="font-mono text-xs" style={{ color:accentColor }}>
+            {whyRecording ? 'regrabar' : 'grabar'}
+          </button>
+        </div>
+        {whyRecording ? (
+          <>
+            {whyRecording.audio
+              ? <audio controls src={whyRecording.audio} className="w-full" style={{ height:38 }} />
+              : <p className="text-white text-sm font-body italic leading-relaxed">"{whyRecording.text}"</p>}
+            <p className="font-mono text-xs text-gray-600 mt-2">
+              {new Date(whyRecording.date + 'T12:00:00').toLocaleDateString('es-CL', { day:'numeric', month:'long', year:'numeric' })}
+            </p>
+          </>
+        ) : (
+          <p className="text-gray-500 text-xs font-body leading-relaxed">
+            Aún no grabas tu porqué. Es lo que te va a levantar el día que no quieras seguir.
+          </p>
+        )}
+      </div>
+
       {/* Insignias */}
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
         <div className="flex items-center justify-between mb-3">
@@ -1305,6 +1383,16 @@ export default function Dashboard() {
           style={{ top:'-6px', right:'-6px', width:'20px', height:'20px', borderRadius:'50%',
             background:'#E23A2E', color:'#fff', fontSize:'14px', lineHeight:1 }}>+</span>
       </button>
+
+      {/* Grabador del porqué */}
+      {whyOpen && (
+        <WhyRecorder
+          accentColor={accentColor}
+          existing={whyRecording}
+          onClose={() => setWhyOpen(false)}
+          onSave={(data) => { setWhyRecording(data); setWhyOpen(false) }}
+        />
+      )}
 
       {/* Toast de logros desbloqueados */}
       <AchievementToast ids={pendingAchievements || []} onDismiss={dismissAchievementNotice} />

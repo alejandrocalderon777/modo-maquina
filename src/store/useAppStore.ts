@@ -42,6 +42,8 @@ export const useAppStore = create<AppState>()(
       streakProtectors: 2,
       protectorsMonth: new Date().toISOString().slice(0, 7),
       protectorUsedDate: undefined,
+      whyRecording: undefined,
+      showWhyReminder: false,
       unlockedAchievements: [],
       pendingAchievements: [],
       workoutCompletions: {},
@@ -164,10 +166,14 @@ export const useAppStore = create<AppState>()(
           newStreak = 1                                  // streak broken
         }
 
+        // Volvió tras una ausencia y tiene un "porqué" grabado → recordárselo
+        const comesBackAfterGap = missedDays >= 1 && Boolean(state.whyRecording)
+
         set({
           lastOpenDate: t,
           streakDays: newStreak,
           maxStreak: Math.max(state.maxStreak || 0, newStreak),
+          showWhyReminder: comesBackAfterGap || state.showWhyReminder,
           streakProtectors: protectors,
           protectorsMonth,
           protectorUsedDate,
@@ -179,6 +185,11 @@ export const useAppStore = create<AppState>()(
       },
 
       dismissProtectorNotice: () => set({ protectorUsedDate: undefined }),
+
+      setWhyRecording: (data) =>
+        set({ whyRecording: { ...data, date: today() } }),
+
+      dismissWhyReminder: () => set({ showWhyReminder: false }),
 
       checkAchievements: () => {
         const state = get()
@@ -211,6 +222,7 @@ export const useAppStore = create<AppState>()(
         protectorsMonth: state.protectorsMonth,
         protectorUsedDate: state.protectorUsedDate,
         unlockedAchievements: state.unlockedAchievements,
+        whyRecording: state.whyRecording,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -236,6 +248,7 @@ function snapshot(s: AppState) {
     protectorsMonth: s.protectorsMonth,
     protectorUsedDate: s.protectorUsedDate,
     unlockedAchievements: s.unlockedAchievements,
+    whyRecording: s.whyRecording,
     workoutCompletions: s.workoutCompletions,
   }
 }
