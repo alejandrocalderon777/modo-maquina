@@ -7,23 +7,25 @@ interface Props {
   onComplete: () => void
 }
 
-interface Block { name: string; seconds: number; rest: number; tip: string }
+interface Block { name: string; seconds: number; rest: number; tip: string; round: number }
 
-// Build a ~15 min bodyweight circuit from no-equipment exercises
+// Build a ~15 min bodyweight circuit: 2 rounds of 7 no-equipment exercises
 function buildCircuit(): Block[] {
   const pool = EXERCISES.filter(e => e.equipment === 'ninguno')
   const pick = (muscle: string) => pool.filter(e => e.muscle === muscle)
   const order = ['Cardio', 'Piernas', 'Pecho', 'Core', 'Glúteos', 'Cardio', 'Core']
-  const blocks: Block[] = []
+  const base: Block[] = []
   const used = new Set<string>()
   for (const m of order) {
     const cands = pick(m).filter(e => !used.has(e.id))
     const ex = (cands[0] || pick(m)[0])
     if (!ex) continue
     used.add(ex.id)
-    blocks.push({ name: ex.name, seconds: 40, rest: 20, tip: ex.tip })
+    base.push({ name: ex.name, seconds: 45, rest: 15, tip: ex.tip, round: 1 })
   }
-  return blocks
+  // 2 rounds → ~15 min
+  const round2 = base.map(b => ({ ...b, round: 2 }))
+  return [...base, ...round2]
 }
 
 export function ExpressWorkout({ accentColor, onClose, onComplete }: Props) {
@@ -84,8 +86,9 @@ export function ExpressWorkout({ accentColor, onClose, onComplete }: Props) {
             Rutina exprés de {totalMin} minutos, sin equipo. Mantener la racha vale más que la sesión perfecta.
             {circuit.length} ejercicios, 40s de trabajo y 20s de descanso.
           </p>
+          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-2">2 rondas · el circuito</p>
           <div className="space-y-2 mb-6">
-            {circuit.map((b, i) => (
+            {circuit.slice(0, circuit.length/2).map((b, i) => (
               <div key={i} className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background:'#1C1F28' }}>
                 <span className="font-mono text-xs w-5" style={{ color:accentColor }}>{i + 1}</span>
                 <p className="flex-1 text-white font-body text-sm">{b.name}</p>
@@ -110,7 +113,7 @@ export function ExpressWorkout({ accentColor, onClose, onComplete }: Props) {
 
           <p className="font-mono text-xs uppercase tracking-widest mb-2"
             style={{ color: phase === 'rest' ? '#6FD3E8' : accentColor }}>
-            {phase === 'rest' ? 'Descanso' : `Ejercicio ${idx + 1}/${circuit.length}`}
+            {phase === 'rest' ? 'Descanso' : `Ronda ${cur.round}/2 · ${(idx % (circuit.length/2)) + 1}/${circuit.length/2}`}
           </p>
 
           <p className="font-display font-black text-3xl text-white uppercase text-center leading-tight mb-1">
