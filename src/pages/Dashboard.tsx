@@ -8,6 +8,7 @@ import { AchievementToast } from '../components/AchievementToast'
 import { WhyRecorder } from '../components/WhyRecorder'
 import { ExpressWorkout } from '../components/ExpressWorkout'
 import { PhotoComparator } from '../components/PhotoComparator'
+import { detectAntiRoutine } from '../components/AntiRoutine'
 import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
@@ -61,6 +62,8 @@ export default function Dashboard() {
   const activeInjury       = useAppStore((s) => s.activeInjury)
   const setWorkoutFeedback = useAppStore((s) => s.setWorkoutFeedback)
   const clearInjury        = useAppStore((s) => s.clearInjury)
+  const dismissAntiRoutine = useAppStore((s) => s.dismissAntiRoutine)
+  const antiRoutine        = detectAntiRoutine(useAppStore.getState())
   const [askPainZone, setAskPainZone] = useState(false)
   const [expressOpen, setExpressOpen] = useState(false)
   const [comparatorOpen, setComparatorOpen] = useState(false)
@@ -541,6 +544,29 @@ export default function Dashboard() {
 
   const WorkoutContent = (
     <>
+      {/* Anti-rutina: monotonía o estancamiento */}
+      {antiRoutine && (
+        <div className="mx-4 mb-3 rounded-2xl p-4"
+          style={{ background: `linear-gradient(135deg, ${accentColor}18, ${accentColor}08)`, border:`1px solid ${accentColor}55` }}>
+          <div className="flex items-start gap-3 mb-3">
+            <span className="text-2xl flex-shrink-0">{antiRoutine.kind === 'estancamiento' ? '📉' : '🔄'}</span>
+            <div className="flex-1">
+              <p className="font-mono text-xs uppercase tracking-widest mb-1" style={{ color:accentColor }}>{antiRoutine.title}</p>
+              <p className="text-white text-sm font-body leading-relaxed">{antiRoutine.message}</p>
+            </div>
+            <button onClick={dismissAntiRoutine} className="text-gray-600 text-lg leading-none">×</button>
+          </div>
+          <div className="space-y-1.5">
+            {antiRoutine.suggestions.map((s, i) => (
+              <div key={i} className="rounded-lg px-3 py-2 flex items-start gap-2" style={{ background:'#1C1F28' }}>
+                <span className="font-mono text-xs" style={{ color:accentColor }}>→</span>
+                <p className="flex-1 text-gray-300 text-xs font-body leading-relaxed">{s}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mx-4 mb-3 rounded-2xl overflow-hidden bg-gray-900">
         <div className="h-1.5 bg-gray-800">
           <div className="h-full transition-all duration-500"

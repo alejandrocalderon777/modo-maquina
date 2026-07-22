@@ -63,6 +63,8 @@ export interface AppState {
   mealPlan?: import('../lib/supabase').MealPlan     // plan de comidas semanal generado
   shoppingChecked: string[]                          // items marcados en la lista
   cheatMeals: string[]                               // fechas ISO de comidas libres (80/20)
+  measurementHistory: { date: string; weight: number; waist?: number }[]  // para detectar estancamiento
+  antiRoutineDismissed?: string  // fecha del último descarte del aviso anti-rutina
   showWhyReminder: boolean        // true tras una ausencia — el avatar lo recuerda
   unlockedAchievements: string[]  // ids de logros desbloqueados
   pendingAchievements: string[]   // ids por notificar al usuario
@@ -88,6 +90,7 @@ export interface AppState {
   toggleShoppingItem: (item: string) => void
   addCheatMeal: () => void
   removeCheatMeal: (date: string) => void
+  dismissAntiRoutine: () => void
   dismissWhyReminder: () => void
   checkAchievements: () => void
   dismissAchievementNotice: () => void

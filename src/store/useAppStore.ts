@@ -49,6 +49,8 @@ export const useAppStore = create<AppState>()(
       mealPlan: undefined,
       shoppingChecked: [],
       cheatMeals: [],
+      measurementHistory: [],
+      antiRoutineDismissed: undefined,
       unlockedAchievements: [],
       pendingAchievements: [],
       workoutCompletions: {},
@@ -57,7 +59,21 @@ export const useAppStore = create<AppState>()(
         set((state) => ({ profile: { ...state.profile, ...data } })),
 
       setMeasurements: (data: Partial<Measurements>) =>
-        set((state) => ({ measurements: { ...state.measurements, ...data } })),
+        set((state) => {
+          const merged = { ...state.measurements, ...data }
+          const t = today()
+          let history = state.measurementHistory || []
+          // Registrar snapshot de peso si viene peso y cambió el día o el valor
+          if (merged.weight) {
+            const last = history[history.length - 1]
+            if (!last || last.date !== t) {
+              history = [...history, { date: t, weight: merged.weight, waist: merged.waist }]
+            } else {
+              history = [...history.slice(0, -1), { date: t, weight: merged.weight, waist: merged.waist }]
+            }
+          }
+          return { measurements: merged, measurementHistory: history }
+        }),
 
       completeOnboarding: () =>
         set({ onboardingComplete: true, streakDays: 1, xpPoints: 100, lastOpenDate: today() }),
@@ -222,6 +238,8 @@ export const useAppStore = create<AppState>()(
         cheatMeals: state.cheatMeals.filter(d => d !== date),
       })),
 
+      dismissAntiRoutine: () => set({ antiRoutineDismissed: today() }),
+
       checkAchievements: () => {
         const state = get()
         const newly = evaluateAchievements(state, state.unlockedAchievements || [])
@@ -259,6 +277,8 @@ export const useAppStore = create<AppState>()(
         mealPlan: state.mealPlan,
         shoppingChecked: state.shoppingChecked,
         cheatMeals: state.cheatMeals,
+        measurementHistory: state.measurementHistory,
+        antiRoutineDismissed: state.antiRoutineDismissed,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -290,6 +310,8 @@ function snapshot(s: AppState) {
     mealPlan: s.mealPlan,
     shoppingChecked: s.shoppingChecked,
     cheatMeals: s.cheatMeals,
+    measurementHistory: s.measurementHistory,
+    antiRoutineDismissed: s.antiRoutineDismissed,
     workoutCompletions: s.workoutCompletions,
   }
 }
