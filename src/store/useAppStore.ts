@@ -51,6 +51,9 @@ export const useAppStore = create<AppState>()(
       cheatMeals: [],
       measurementHistory: [],
       antiRoutineDismissed: undefined,
+      reviewDay: 0,       // domingo por defecto
+      reviewHour: 20,     // 8 PM
+      lastReviewSeen: undefined,
       unlockedAchievements: [],
       pendingAchievements: [],
       workoutCompletions: {},
@@ -240,6 +243,10 @@ export const useAppStore = create<AppState>()(
 
       dismissAntiRoutine: () => set({ antiRoutineDismissed: today() }),
 
+      setReviewSchedule: (day, hour) => set({ reviewDay: day, reviewHour: hour }),
+
+      markReviewSeen: () => set({ lastReviewSeen: today() }),
+
       checkAchievements: () => {
         const state = get()
         const newly = evaluateAchievements(state, state.unlockedAchievements || [])
@@ -279,6 +286,9 @@ export const useAppStore = create<AppState>()(
         cheatMeals: state.cheatMeals,
         measurementHistory: state.measurementHistory,
         antiRoutineDismissed: state.antiRoutineDismissed,
+        reviewDay: state.reviewDay,
+        reviewHour: state.reviewHour,
+        lastReviewSeen: state.lastReviewSeen,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -312,6 +322,9 @@ function snapshot(s: AppState) {
     cheatMeals: s.cheatMeals,
     measurementHistory: s.measurementHistory,
     antiRoutineDismissed: s.antiRoutineDismissed,
+    reviewDay: s.reviewDay,
+    reviewHour: s.reviewHour,
+    lastReviewSeen: s.lastReviewSeen,
     workoutCompletions: s.workoutCompletions,
   }
 }

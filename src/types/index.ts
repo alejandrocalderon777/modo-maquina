@@ -65,6 +65,9 @@ export interface AppState {
   cheatMeals: string[]                               // fechas ISO de comidas libres (80/20)
   measurementHistory: { date: string; weight: number; waist?: number }[]  // para detectar estancamiento
   antiRoutineDismissed?: string  // fecha del último descarte del aviso anti-rutina
+  reviewDay: number              // 0=Dom..6=Sáb, día del ritual de avances
+  reviewHour: number             // hora (0-23)
+  lastReviewSeen?: string        // fecha (YYYY-MM-DD) en que vio el último ritual
   showWhyReminder: boolean        // true tras una ausencia — el avatar lo recuerda
   unlockedAchievements: string[]  // ids de logros desbloqueados
   pendingAchievements: string[]   // ids por notificar al usuario
@@ -91,6 +94,8 @@ export interface AppState {
   addCheatMeal: () => void
   removeCheatMeal: (date: string) => void
   dismissAntiRoutine: () => void
+  setReviewSchedule: (day: number, hour: number) => void
+  markReviewSeen: () => void
   dismissWhyReminder: () => void
   checkAchievements: () => void
   dismissAchievementNotice: () => void

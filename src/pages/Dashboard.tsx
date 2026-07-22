@@ -9,6 +9,7 @@ import { WhyRecorder } from '../components/WhyRecorder'
 import { ExpressWorkout } from '../components/ExpressWorkout'
 import { PhotoComparator } from '../components/PhotoComparator'
 import { detectAntiRoutine } from '../components/AntiRoutine'
+import { WeeklyReview } from '../components/WeeklyReview'
 import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
@@ -63,7 +64,17 @@ export default function Dashboard() {
   const setWorkoutFeedback = useAppStore((s) => s.setWorkoutFeedback)
   const clearInjury        = useAppStore((s) => s.clearInjury)
   const dismissAntiRoutine = useAppStore((s) => s.dismissAntiRoutine)
+  const reviewDay          = useAppStore((s) => s.reviewDay)
+  const reviewHour         = useAppStore((s) => s.reviewHour)
+  const lastReviewSeen     = useAppStore((s) => s.lastReviewSeen)
+  const setReviewSchedule  = useAppStore((s) => s.setReviewSchedule)
+  const markReviewSeen     = useAppStore((s) => s.markReviewSeen)
+  const [reviewOpen, setReviewOpen] = useState(false)
   const antiRoutine        = detectAntiRoutine(useAppStore.getState())
+  const nowRV = new Date()
+  const todayISO = nowRV.toISOString().split('T')[0]
+  const isReviewTime = nowRV.getDay() === reviewDay && nowRV.getHours() >= reviewHour && lastReviewSeen !== todayISO
+  const openReview = () => { setReviewOpen(true); markReviewSeen() }
   const [askPainZone, setAskPainZone] = useState(false)
   const [expressOpen, setExpressOpen] = useState(false)
   const [comparatorOpen, setComparatorOpen] = useState(false)
@@ -254,6 +265,19 @@ export default function Dashboard() {
   // ── HOME tab ─────────────────────────────────────────────────
   const HomeContent = (
     <>
+      {/* Ritual de avances — recordatorio cuando llega el horario */}
+      {isReviewTime && (
+        <button onClick={openReview}
+          className="mx-4 mb-4 w-[calc(100%-2rem)] rounded-2xl p-4 flex items-center gap-3 text-left active:scale-98 transition-transform"
+          style={{ background:`linear-gradient(135deg, ${accentColor}22, ${accentColor}0A)`, border:`1px solid ${accentColor}66` }}>
+          <span className="text-2xl">📊</span>
+          <div className="flex-1">
+            <p className="text-white font-display font-bold text-sm">Es hora de tu ritual de avances</p>
+            <p className="text-gray-400 text-xs font-body mt-0.5">Revisemos tu semana juntos — toca para ver tu resumen</p>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      )}
       {/* Aviso: se usó un protector para salvar la racha */}
       {protectorUsedDate === todayStr && (
         <div className="mx-4 mb-4 rounded-2xl p-4 flex items-start gap-3"
@@ -1330,6 +1354,37 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Ritual de avances */}
+      <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Ritual de avances</p>
+          <button onClick={() => setReviewOpen(true)} className="font-mono text-xs" style={{ color:accentColor }}>ver ahora →</button>
+        </div>
+        <p className="text-gray-400 text-xs font-body leading-relaxed mb-3">
+          Cada semana te recuerdo revisar tu progreso y te lo interpreto. Elige cuándo:
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <p className="font-mono text-xs text-gray-600 mb-1">Día</p>
+            <select value={reviewDay} onChange={e => setReviewSchedule(Number(e.target.value), reviewHour)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-volt">
+              {['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'].map((d,i)=>(
+                <option key={i} value={i}>{d}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <p className="font-mono text-xs text-gray-600 mb-1">Hora</p>
+            <select value={reviewHour} onChange={e => setReviewSchedule(reviewDay, Number(e.target.value))}
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-volt">
+              {Array.from({length:24}).map((_,h)=>(
+                <option key={h} value={h}>{String(h).padStart(2,'0')}:00</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Tu porqué */}
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
         <div className="flex items-center justify-between mb-3">
@@ -1522,6 +1577,17 @@ export default function Dashboard() {
           style={{ top:'-6px', right:'-6px', width:'20px', height:'20px', borderRadius:'50%',
             background:'#E23A2E', color:'#fff', fontSize:'14px', lineHeight:1 }}>+</span>
       </button>
+
+      {/* Ritual de avances */}
+      {reviewOpen && (
+        <WeeklyReview
+          accentColor={accentColor}
+          avatarSrc={avatarSrc}
+          lineageName={lineage?.fullName || 'Máquina'}
+          state={useAppStore.getState()}
+          onClose={() => setReviewOpen(false)}
+        />
+      )}
 
       {/* Comparador de fotos */}
       {comparatorOpen && bodyPhotos.length >= 2 && (
