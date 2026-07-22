@@ -7,6 +7,7 @@ import { ExerciseImage } from '../components/ExerciseImage'
 import { AchievementToast } from '../components/AchievementToast'
 import { WhyRecorder } from '../components/WhyRecorder'
 import { ExpressWorkout } from '../components/ExpressWorkout'
+import { PhotoComparator } from '../components/PhotoComparator'
 import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
@@ -62,6 +63,7 @@ export default function Dashboard() {
   const clearInjury        = useAppStore((s) => s.clearInjury)
   const [askPainZone, setAskPainZone] = useState(false)
   const [expressOpen, setExpressOpen] = useState(false)
+  const [comparatorOpen, setComparatorOpen] = useState(false)
   const [whyOpen, setWhyOpen] = useState(false)
 
   const todayStr = new Date().toISOString().split('T')[0]
@@ -1157,7 +1159,14 @@ export default function Dashboard() {
 
       {/* Fotos — siempre visible */}
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
-        <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Fotos corporales</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Fotos corporales</p>
+          {bodyPhotos.length >= 2 && (
+            <button onClick={() => setComparatorOpen(true)} className="font-mono text-xs flex items-center gap-1" style={{ color:accentColor }}>
+              🔄 Comparar
+            </button>
+          )}
+        </div>
         {bodyPhotos.length === 0 ? (
           <div className="text-center py-6">
             <p className="text-4xl mb-2">📸</p>
@@ -1487,6 +1496,11 @@ export default function Dashboard() {
           style={{ top:'-6px', right:'-6px', width:'20px', height:'20px', borderRadius:'50%',
             background:'#E23A2E', color:'#fff', fontSize:'14px', lineHeight:1 }}>+</span>
       </button>
+
+      {/* Comparador de fotos */}
+      {comparatorOpen && bodyPhotos.length >= 2 && (
+        <PhotoComparator photos={bodyPhotos} accentColor={accentColor} onClose={() => setComparatorOpen(false)} />
+      )}
 
       {/* Rutina exprés sin excusas */}
       {expressOpen && (
