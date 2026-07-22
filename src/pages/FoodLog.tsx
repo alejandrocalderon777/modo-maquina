@@ -10,6 +10,7 @@ import type { MealType, FoodEntry } from '../types'
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'))
 import { analyzePlate, generateRecipe, lookupFoodAI, generateMealPlan, restaurantAdvisor, type AIFood, type RestaurantAdvice } from '../lib/supabase'
 import { PlateCamera } from '../components/PlateCamera'
+import { DRINKS } from '../assets/drinks'
 import { NutriVerdict } from '../components/NutriVerdict'
 import { computeVerdict, verdictFromOFF } from '../utils/nutriScore'
 
@@ -24,7 +25,7 @@ const CATEGORY_ICONS: Record<string,string> = {
 }
 const RECIPE_CATS = ['Todos','Desayuno','Almuerzo','Cena','Snack']
 
-type ActiveCard = 'none' | 'foods' | 'recipes' | 'scan' | 'plate' | 'label' | 'mealplan' | 'restaurant'
+type ActiveCard = 'none' | 'foods' | 'recipes' | 'scan' | 'plate' | 'label' | 'mealplan' | 'restaurant' | 'alcohol'
 type ScanState = 'idle' | 'scanning' | 'loading' | 'confirm' | 'notfound'
 type SelectedFood = { source: 'db'; item: FoodItem } | { source: 'barcode'; item: OFFProduct } | { source: 'recipe'; item: Recipe }
 
@@ -36,6 +37,9 @@ export default function FoodLog() {
   const shoppingChecked   = useAppStore((s) => s.shoppingChecked)
   const setMealPlan       = useAppStore((s) => s.setMealPlan)
   const toggleShoppingItem = useAppStore((s) => s.toggleShoppingItem)
+  const cheatMeals        = useAppStore((s) => s.cheatMeals)
+  const addCheatMeal      = useAppStore((s) => s.addCheatMeal)
+  const removeCheatMeal   = useAppStore((s) => s.removeCheatMeal)
   const [planGenerating, setPlanGenerating] = useState(false)
   const [planError, setPlanError] = useState('')
   const [planTab, setPlanTab] = useState<'plan'|'lista'>('plan')
@@ -228,6 +232,29 @@ export default function FoodLog() {
 
   // Reset AI foods when query changes
   useEffect(() => { setAiFoods([]) }, [query])
+
+  const addDrink = (drink: typeof DRINKS[number]) => {
+    addFood({
+      id: `drink-${Date.now()}-${Math.random()}`,
+      foodId: `alcohol-${drink.id}`,
+      name: drink.name,
+      grams: 0,
+      cal: drink.cal,
+      prot: 0,
+      carbs: drink.carbs,
+      fat: 0,
+      mealType: 'snack',
+      date: today,
+      timestamp: Date.now(),
+      kind: 'alcohol',
+    })
+    setActiveCard('none')
+  }
+
+  // Comidas libres esta semana (últimos 7 días)
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
+  const cheatsThisWeek = (cheatMeals || []).filter(d => new Date(d) >= weekAgo)
+  const CHEAT_ALLOWANCE = 4  // ~20% de 21 comidas semanales
 
   const handleGenerateMealPlan = async () => {
     setPlanGenerating(true)
@@ -938,6 +965,77 @@ export default function FoodLog() {
             <p className="font-mono text-xs mt-1" style={{color:'#6FD3E8'}}>✨ Claude Vision · activo ✓</p>
           </div>
         </button>
+
+        {/* ALCOHOL card */}
+        <div className="rounded-2xl overflow-hidden" style={{border:'1px solid', borderColor: activeCard==='alcohol' ? '#DE782C' : '#252933', background:'#1C1F28'}}>
+          <button className="w-full flex items-center gap-4 p-4 text-left active:scale-95 transition-transform"
+            onClick={()=>setActiveCard(activeCard==='alcohol'?'none':'alcohol')}>
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
+              style={{background: activeCard==='alcohol' ? '#DE782C20' : '#252933'}}>🍺</div>
+            <div className="flex-1">
+              <p className="text-white font-display font-bold text-base">Registrar bebida</p>
+              <p className="text-gray-500 text-xs font-body mt-0.5">Alcohol sin culpa — mejor visibilizarlo que ignorarlo</p>
+              <p className="text-xs font-mono mt-1" style={{color:'#DE782C'}}>Disponible ✓</p>
+            </div>
+            <svg className="transition-transform flex-shrink-0" style={{transform: activeCard==='alcohol'?'rotate(90deg)':'rotate(0deg)'}}
+              width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+          {activeCard === 'alcohol' && (
+            <div className="border-t border-gray-800 px-3 pb-3 pt-3">
+              <div className="grid grid-cols-2 gap-1.5">
+                {DRINKS.map(d => (
+                  <button key={d.id} onClick={()=>addDrink(d)}
+                    className="flex items-center gap-2 p-2.5 rounded-xl text-left active:scale-95 transition-transform"
+                    style={{background:'#252933', border:'1px solid #2e3140'}}>
+                    <span className="text-xl flex-shrink-0">{d.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-body text-xs font-semibold leading-tight">{d.name}</p>
+                      <p className="text-gray-600 font-mono" style={{fontSize:'9px'}}>{d.serving}</p>
+                    </div>
+                    <span className="font-mono text-xs" style={{color:'#DE782C'}}>{d.cal}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-gray-600 text-xs font-body text-center mt-3 leading-relaxed">
+                El alcohol suma calorías y afecta tu recuperación. Registrarlo te da la foto real, sin juzgarte.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* FLEXIBILIDAD 80/20 card */}
+        <div className="rounded-2xl p-4" style={{background:'#1C1F28', border:'1px solid #252933'}}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🎯</span>
+              <div>
+                <p className="text-white font-display font-bold text-base">Flexibilidad 80/20</p>
+                <p className="text-gray-500 text-xs font-body">Comidas libres que protegen tu racha</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 mb-3">
+            {Array.from({length: CHEAT_ALLOWANCE}).map((_, i) => (
+              <div key={i} className="flex-1 h-2 rounded-full" style={{background: i < cheatsThisWeek.length ? '#DE782C' : '#252933'}} />
+            ))}
+          </div>
+          <p className="font-mono text-xs mb-3" style={{color: cheatsThisWeek.length >= CHEAT_ALLOWANCE ? '#E23A2E' : '#6FD3E8'}}>
+            {cheatsThisWeek.length}/{CHEAT_ALLOWANCE} comidas libres esta semana
+            {cheatsThisWeek.length >= CHEAT_ALLOWANCE && ' · llegaste al límite, vuelve al 80%'}
+          </p>
+          <button onClick={addCheatMeal} disabled={cheatsThisWeek.length >= CHEAT_ALLOWANCE}
+            className="w-full py-2.5 rounded-xl font-display font-bold text-sm disabled:opacity-40"
+            style={{background: cheatsThisWeek.length >= CHEAT_ALLOWANCE ? '#252933' : '#DE782C22', color:'#DE782C', border:'1px solid #DE782C44'}}>
+            + Registrar comida libre
+          </button>
+          {cheatsThisWeek.length > 0 && (
+            <button onClick={()=>removeCheatMeal(cheatsThisWeek[cheatsThisWeek.length-1])}
+              className="w-full py-1.5 font-mono text-xs text-gray-600 mt-1">deshacer última</button>
+          )}
+          <p className="text-gray-600 text-xs font-body text-center mt-2 leading-relaxed">
+            80% alineado a tu objetivo, 20% libre. Una comida trampa programada no rompe el progreso — lo sostiene.
+          </p>
+        </div>
 
         {/* BARCODE card */}
         <button className="w-full flex items-center gap-4 p-4 rounded-2xl text-left active:scale-95 transition-transform"

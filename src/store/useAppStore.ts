@@ -48,6 +48,7 @@ export const useAppStore = create<AppState>()(
       activeInjury: undefined,
       mealPlan: undefined,
       shoppingChecked: [],
+      cheatMeals: [],
       unlockedAchievements: [],
       pendingAchievements: [],
       workoutCompletions: {},
@@ -213,6 +214,14 @@ export const useAppStore = create<AppState>()(
           : [...state.shoppingChecked, item],
       })),
 
+      addCheatMeal: () => set((state) => ({
+        cheatMeals: [...state.cheatMeals, new Date().toISOString()],
+      })),
+
+      removeCheatMeal: (date) => set((state) => ({
+        cheatMeals: state.cheatMeals.filter(d => d !== date),
+      })),
+
       checkAchievements: () => {
         const state = get()
         const newly = evaluateAchievements(state, state.unlockedAchievements || [])
@@ -249,6 +258,7 @@ export const useAppStore = create<AppState>()(
         activeInjury: state.activeInjury,
         mealPlan: state.mealPlan,
         shoppingChecked: state.shoppingChecked,
+        cheatMeals: state.cheatMeals,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -279,6 +289,7 @@ function snapshot(s: AppState) {
     activeInjury: s.activeInjury,
     mealPlan: s.mealPlan,
     shoppingChecked: s.shoppingChecked,
+    cheatMeals: s.cheatMeals,
     workoutCompletions: s.workoutCompletions,
   }
 }

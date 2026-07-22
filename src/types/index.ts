@@ -37,6 +37,7 @@ export interface FoodEntry {
   mealType: MealType
   date: string   // YYYY-MM-DD
   timestamp: number
+  kind?: 'food' | 'alcohol'   // para distinguir alcohol
 }
 
 export type WorkoutFeedbackLevel = 'easy' | 'good' | 'hard' | 'pain'
@@ -61,6 +62,7 @@ export interface AppState {
   activeInjury?: { zone: string; date: string }     // lesión activa que ajusta el plan
   mealPlan?: import('../lib/supabase').MealPlan     // plan de comidas semanal generado
   shoppingChecked: string[]                          // items marcados en la lista
+  cheatMeals: string[]                               // fechas ISO de comidas libres (80/20)
   showWhyReminder: boolean        // true tras una ausencia — el avatar lo recuerda
   unlockedAchievements: string[]  // ids de logros desbloqueados
   pendingAchievements: string[]   // ids por notificar al usuario
@@ -84,6 +86,8 @@ export interface AppState {
   clearInjury: () => void
   setMealPlan: (plan: import('../lib/supabase').MealPlan) => void
   toggleShoppingItem: (item: string) => void
+  addCheatMeal: () => void
+  removeCheatMeal: (date: string) => void
   dismissWhyReminder: () => void
   checkAchievements: () => void
   dismissAchievementNotice: () => void
