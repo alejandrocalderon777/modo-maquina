@@ -8,7 +8,7 @@ import { RECIPES, filterRecipes, type Recipe } from '../assets/recipes'
 import type { MealType, FoodEntry } from '../types'
 
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'))
-import { analyzePlate, generateRecipe, lookupFoodAI, generateMealPlan, type AIFood } from '../lib/supabase'
+import { analyzePlate, generateRecipe, lookupFoodAI, generateMealPlan, restaurantAdvisor, type AIFood, type RestaurantAdvice } from '../lib/supabase'
 import { PlateCamera } from '../components/PlateCamera'
 import { NutriVerdict } from '../components/NutriVerdict'
 import { computeVerdict, verdictFromOFF } from '../utils/nutriScore'
@@ -24,7 +24,7 @@ const CATEGORY_ICONS: Record<string,string> = {
 }
 const RECIPE_CATS = ['Todos','Desayuno','Almuerzo','Cena','Snack']
 
-type ActiveCard = 'none' | 'foods' | 'recipes' | 'scan' | 'plate' | 'label' | 'mealplan'
+type ActiveCard = 'none' | 'foods' | 'recipes' | 'scan' | 'plate' | 'label' | 'mealplan' | 'restaurant'
 type ScanState = 'idle' | 'scanning' | 'loading' | 'confirm' | 'notfound'
 type SelectedFood = { source: 'db'; item: FoodItem } | { source: 'barcode'; item: OFFProduct } | { source: 'recipe'; item: Recipe }
 
@@ -136,6 +136,47 @@ export default function FoodLog() {
     setActiveCard('none')
     setPlateState('idle')
     setPlateResults(null)
+  }
+
+  // ── Modo restaurante ──────────────────────────────────────────
+  type RestoState = 'idle' | 'capturing' | 'analyzing' | 'results' | 'error'
+  const [restoState, setRestoState] = useState<RestoState>('idle')
+  const [restoAdvice, setRestoAdvice] = useState<RestaurantAdvice | null>(null)
+  const [restoError, setRestoError] = useState('')
+
+  const openRestaurant = () => { setActiveCard('restaurant'); setRestoState('capturing'); setRestoAdvice(null); setRestoError('') }
+
+  const runRestaurant = async (base64: string, mimeType: string) => {
+    setRestoState('analyzing')
+    try {
+      const goalMap: Record<string,string> = { lose_weight:'Bajar de peso', gain_muscle:'Ganar músculo', health:'Salud general' }
+      const m = useAppStore.getState().macros
+      const remaining = {
+        cal: Math.max(0, m.calories.target - m.calories.consumed),
+        prot: Math.max(0, m.protein.target - m.protein.consumed),
+        carbs: Math.max(0, m.carbs.target - m.carbs.consumed),
+        fat: Math.max(0, m.fat.target - m.fat.consumed),
+      }
+      const res = await restaurantAdvisor({
+        imageBase64: base64, mimeType,
+        goal: profile.goal ? goalMap[profile.goal] : undefined,
+        remaining,
+      })
+      setRestoAdvice(res)
+      setRestoState('results')
+    } catch {
+      setRestoError('No se pudo analizar. Intenta de nuevo.')
+      setRestoState('error')
+    }
+  }
+  const captureResto = async (videoEl: HTMLVideoElement) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = videoEl.videoWidth || 1280
+    canvas.height = videoEl.videoHeight || 720
+    canvas.getContext('2d')!.drawImage(videoEl, 0, 0)
+    const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1]
+    if (videoEl.srcObject) (videoEl.srcObject as MediaStream).getTracks().forEach(t => t.stop())
+    await runRestaurant(b64, 'image/jpeg')
   }
 
   const today = getToday()
@@ -886,6 +927,18 @@ export default function FoodLog() {
           )}
         </div>
 
+        {/* MODO RESTAURANTE card */}
+        <button onClick={openRestaurant}
+          className="flex items-center gap-4 p-4 rounded-2xl w-full text-left active:scale-98 transition-transform"
+          style={{background:'#1C1F28', border:'1px solid #6FD3E833'}}>
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl" style={{background:'#6FD3E820'}}>🍴</div>
+          <div className="flex-1">
+            <p className="text-white font-display font-bold text-base">Modo restaurante <span className="ml-1">✨</span></p>
+            <p className="text-gray-400 text-xs font-body mt-0.5">Foto al menú o plato → qué pedir y cuánto comer</p>
+            <p className="font-mono text-xs mt-1" style={{color:'#6FD3E8'}}>✨ Claude Vision · activo ✓</p>
+          </div>
+        </button>
+
         {/* BARCODE card */}
         <button className="w-full flex items-center gap-4 p-4 rounded-2xl text-left active:scale-95 transition-transform"
           style={{background:'#1C1F28', border:'1px solid #252933'}}
@@ -936,6 +989,93 @@ export default function FoodLog() {
         </button>
 
         {/* ── PLATE CAMERA MODAL ── */}
+        {/* ── MODO RESTAURANTE MODAL ── */}
+        {activeCard === 'restaurant' && (
+          <div className="fixed inset-0 flex flex-col" style={{background:'#111318', zIndex:60}}>
+            <div className="flex items-center justify-between px-4 pt-safe pt-4 pb-3" style={{borderBottom:'1px solid #1C1F28'}}>
+              <button onClick={() => { setActiveCard('none'); setRestoState('idle') }} className="text-gray-500 font-mono text-sm">← Cancelar</button>
+              <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Modo restaurante</p>
+              <div className="w-16"/>
+            </div>
+
+            {restoState === 'capturing' && (
+              <PlateCamera
+                onCapture={captureResto}
+                onCaptureFile={(b64, mt) => runRestaurant(b64, mt)}
+                accentColor="#6FD3E8"
+                mode="plate"
+              />
+            )}
+
+            {restoState === 'analyzing' && (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                <div className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin" style={{borderColor:'#6FD3E844', borderTopColor:'transparent'}}/>
+                <p className="font-mono text-sm" style={{color:'#6FD3E8'}}>✨ Analizando el menú…</p>
+                <p className="font-mono text-xs text-gray-600">Cruzando con tus macros de hoy</p>
+              </div>
+            )}
+
+            {restoState === 'error' && (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8">
+                <p className="text-4xl">😕</p>
+                <p className="text-white font-body text-center">{restoError}</p>
+                <button onClick={openRestaurant} className="px-6 py-3 rounded-xl font-mono text-sm" style={{background:'#6FD3E8', color:'#111318'}}>Intentar de nuevo</button>
+              </div>
+            )}
+
+            {restoState === 'results' && restoAdvice && (
+              <div className="flex-1 overflow-y-auto px-4 pb-8 pt-4">
+                {/* Consejo del coach */}
+                <div className="rounded-2xl p-4 mb-4" style={{background:'linear-gradient(135deg, #6FD3E818, #6FD3E808)', border:'1px solid #6FD3E844'}}>
+                  <p className="font-mono text-xs uppercase tracking-widest mb-1" style={{color:'#6FD3E8'}}>Coach</p>
+                  <p className="text-white text-sm font-body italic leading-relaxed">"{restoAdvice.consejo}"</p>
+                </div>
+
+                {restoAdvice.tipo === 'plato' && restoAdvice.macrosEstimados.cal > 0 && (
+                  <div className="rounded-xl p-3 mb-4" style={{background:'#1C1F28'}}>
+                    <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-2">Macros estimados del plato</p>
+                    <div className="flex gap-4">
+                      {[{l:'Kcal',v:restoAdvice.macrosEstimados.cal,c:'#CEFF3C'},{l:'Prot',v:restoAdvice.macrosEstimados.prot,c:'#E23A2E'},{l:'Carbs',v:restoAdvice.macrosEstimados.carbs,c:'#6FD3E8'},{l:'Grasas',v:restoAdvice.macrosEstimados.fat,c:'#DE782C'}].map(m=>(
+                        <div key={m.l}><p className="font-mono font-bold" style={{color:m.c,fontSize:'15px'}}>{Math.round(m.v)}</p><p className="font-mono text-gray-600" style={{fontSize:'9px'}}>{m.l}</p></div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {restoAdvice.recomendaciones.length > 0 && (
+                  <div className="mb-4">
+                    <p className="font-mono text-xs uppercase tracking-widest mb-2" style={{color:'#CEFF3C'}}>✓ Buenas opciones</p>
+                    <div className="space-y-2">
+                      {restoAdvice.recomendaciones.map((r,i)=>(
+                        <div key={i} className="rounded-xl p-3" style={{background:'#1C1F28', border:'1px solid #CEFF3C22'}}>
+                          <p className="text-white font-body text-sm font-medium">{r.opcion}</p>
+                          <p className="text-gray-500 text-xs font-body mt-0.5">{r.razon}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {restoAdvice.evitar.length > 0 && (
+                  <div className="mb-4">
+                    <p className="font-mono text-xs uppercase tracking-widest mb-2" style={{color:'#E23A2E'}}>✕ Mejor evitar</p>
+                    <div className="space-y-2">
+                      {restoAdvice.evitar.map((r,i)=>(
+                        <div key={i} className="rounded-xl p-3" style={{background:'#1C1F28', border:'1px solid #E23A2E22'}}>
+                          <p className="text-white font-body text-sm font-medium">{r.opcion}</p>
+                          <p className="text-gray-500 text-xs font-body mt-0.5">{r.razon}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button onClick={openRestaurant} className="w-full py-3 rounded-xl font-mono text-xs" style={{background:'#1C1F28', color:'#6FD3E8'}}>🔄 Otra foto</button>
+              </div>
+            )}
+          </div>
+        )}
+
         {(activeCard === 'plate' || activeCard === 'label') && (
           <div className="fixed inset-0 flex flex-col" style={{background:'#111318', zIndex:60}}>
             {/* Header */}
@@ -1120,7 +1260,7 @@ export default function FoodLog() {
       )}
 
       {/* Nav bar — se oculta cuando hay cámara/modal a pantalla completa */}
-      {!(activeCard === 'plate' || activeCard === 'label' || showModal || scanState === 'scanning') && (
+      {!(activeCard === 'plate' || activeCard === 'label' || activeCard === 'restaurant' || showModal || scanState === 'scanning') && (
       <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around py-3 z-50"
         style={{ background:'rgba(17,19,24,0.95)', backdropFilter:'blur(20px)', borderTop:'1px solid #1C1F28' }}>
         {([

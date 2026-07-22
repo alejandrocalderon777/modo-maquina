@@ -140,3 +140,21 @@ export async function generateMealPlan(params: {
   if (data?.error) throw new Error(data.error)
   return data
 }
+
+export interface RestaurantAdvice {
+  tipo: 'menu' | 'plato'
+  recomendaciones: { opcion: string; razon: string }[]
+  evitar: { opcion: string; razon: string }[]
+  consejo: string
+  macrosEstimados: { cal: number; prot: number; carbs: number; fat: number }
+}
+
+export async function restaurantAdvisor(params: {
+  imageBase64: string; mimeType?: string; goal?: string
+  remaining?: { cal: number; prot: number; carbs: number; fat: number }
+}): Promise<RestaurantAdvice> {
+  const { data, error } = await supabase.functions.invoke('restaurant-advisor', { body: params })
+  if (error) throw error
+  if (data?.error) throw new Error(data.error)
+  return data
+}
