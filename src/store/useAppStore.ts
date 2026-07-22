@@ -46,6 +46,8 @@ export const useAppStore = create<AppState>()(
       showWhyReminder: false,
       workoutFeedback: {},
       activeInjury: undefined,
+      mealPlan: undefined,
+      shoppingChecked: [],
       unlockedAchievements: [],
       pendingAchievements: [],
       workoutCompletions: {},
@@ -203,6 +205,14 @@ export const useAppStore = create<AppState>()(
 
       clearInjury: () => set({ activeInjury: undefined }),
 
+      setMealPlan: (plan) => set({ mealPlan: plan, shoppingChecked: [] }),
+
+      toggleShoppingItem: (item) => set((state) => ({
+        shoppingChecked: state.shoppingChecked.includes(item)
+          ? state.shoppingChecked.filter(i => i !== item)
+          : [...state.shoppingChecked, item],
+      })),
+
       checkAchievements: () => {
         const state = get()
         const newly = evaluateAchievements(state, state.unlockedAchievements || [])
@@ -237,6 +247,8 @@ export const useAppStore = create<AppState>()(
         whyRecording: state.whyRecording,
         workoutFeedback: state.workoutFeedback,
         activeInjury: state.activeInjury,
+        mealPlan: state.mealPlan,
+        shoppingChecked: state.shoppingChecked,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -265,6 +277,8 @@ function snapshot(s: AppState) {
     whyRecording: s.whyRecording,
     workoutFeedback: s.workoutFeedback,
     activeInjury: s.activeInjury,
+    mealPlan: s.mealPlan,
+    shoppingChecked: s.shoppingChecked,
     workoutCompletions: s.workoutCompletions,
   }
 }

@@ -59,6 +59,8 @@ export interface AppState {
   whyRecording?: { audio?: string; text?: string; date: string }  // el "porqué" grabado
   workoutFeedback: Record<string, WorkoutFeedback>  // por fecha
   activeInjury?: { zone: string; date: string }     // lesión activa que ajusta el plan
+  mealPlan?: import('../lib/supabase').MealPlan     // plan de comidas semanal generado
+  shoppingChecked: string[]                          // items marcados en la lista
   showWhyReminder: boolean        // true tras una ausencia — el avatar lo recuerda
   unlockedAchievements: string[]  // ids de logros desbloqueados
   pendingAchievements: string[]   // ids por notificar al usuario
@@ -80,6 +82,8 @@ export interface AppState {
   setWhyRecording: (data: { audio?: string; text?: string }) => void
   setWorkoutFeedback: (date: string, fb: WorkoutFeedback) => void
   clearInjury: () => void
+  setMealPlan: (plan: import('../lib/supabase').MealPlan) => void
+  toggleShoppingItem: (item: string) => void
   dismissWhyReminder: () => void
   checkAchievements: () => void
   dismissAchievementNotice: () => void

@@ -125,3 +125,18 @@ export async function adjustWorkout(params: {
   if (data?.error) throw new Error(data.error)
   return data
 }
+
+export interface MealPlan {
+  dias: { dia: string; comidas: Record<string, { nombre: string; kcal: number }> }[]
+  listaSupermercado: { categoria: string; items: string[] }[]
+}
+
+export async function generateMealPlan(params: {
+  goal?: string; calories?: number; protein?: number; carbs?: number; fat?: number
+  restrictions?: string; dislikes?: string
+}): Promise<MealPlan> {
+  const { data, error } = await supabase.functions.invoke('meal-plan', { body: params })
+  if (error) throw error
+  if (data?.error) throw new Error(data.error)
+  return data
+}
