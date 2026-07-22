@@ -10,6 +10,7 @@ import { ExpressWorkout } from '../components/ExpressWorkout'
 import { PhotoComparator } from '../components/PhotoComparator'
 import { detectAntiRoutine } from '../components/AntiRoutine'
 import { WeeklyReview } from '../components/WeeklyReview'
+import { requestNotificationPermission, notificationPermission, scheduleDailyReminder, showNotification, inactiveMessage } from '../lib/notifications'
 import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
@@ -69,6 +70,9 @@ export default function Dashboard() {
   const lastReviewSeen     = useAppStore((s) => s.lastReviewSeen)
   const setReviewSchedule  = useAppStore((s) => s.setReviewSchedule)
   const markReviewSeen     = useAppStore((s) => s.markReviewSeen)
+  const notificationsEnabled = useAppStore((s) => s.notificationsEnabled)
+  const reminderHour       = useAppStore((s) => s.reminderHour)
+  const setNotifications   = useAppStore((s) => s.setNotifications)
   const [reviewOpen, setReviewOpen] = useState(false)
   const antiRoutine        = detectAntiRoutine(useAppStore.getState())
   const nowRV = new Date()
@@ -156,6 +160,29 @@ export default function Dashboard() {
     checkAchievements()
   }, [streakDays, maxStreak, xpPoints, foodLog.length, bodyPhotos.length,
       todayDone.length, macros.protein.consumed, macros.water.consumed, streakProtectors])
+
+  // Recordatorio diario local
+  useEffect(() => {
+    if (notificationsEnabled && notificationPermission() === 'granted') {
+      scheduleDailyReminder(reminderHour, profile.lineage, streakDays)
+    }
+  }, [notificationsEnabled, reminderHour, profile.lineage, streakDays])
+
+  // Aviso empático al volver tras inactividad
+  useEffect(() => {
+    if (notificationsEnabled && notificationPermission() === 'granted' && showWhyReminder) {
+      showNotification({ title: 'Te extrañé 💪', body: inactiveMessage(profile.lineage), tag: 'inactive' })
+    }
+  }, [notificationsEnabled, showWhyReminder, profile.lineage])
+
+  const handleToggleNotifications = async () => {
+    if (notificationsEnabled) { setNotifications(false); return }
+    const perm = await requestNotificationPermission()
+    if (perm === 'granted') {
+      setNotifications(true)
+      showNotification({ title: '🔔 Listo', body: 'Te avisaré con cariño, nunca con culpa. Vamos con todo.', tag: 'welcome' })
+    }
+  }
 
   const handleToggleWorkout = (name: string) => {
     const wasDone = todayDone.includes(name)
@@ -1352,6 +1379,36 @@ export default function Dashboard() {
             <p className="font-mono text-xs text-gray-500 mt-1">{s.l}</p>
           </div>
         ))}
+      </div>
+
+      {/* Notificaciones */}
+      <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest">Recordatorios</p>
+          <button onClick={handleToggleNotifications}
+            className="relative w-11 h-6 rounded-full transition-colors"
+            style={{ background: notificationsEnabled ? accentColor : '#333' }}>
+            <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+              style={{ left: notificationsEnabled ? '22px' : '2px' }} />
+          </button>
+        </div>
+        <p className="text-gray-400 text-xs font-body leading-relaxed mb-3">
+          Recordatorios amables, nunca culposos. El coach te busca cuando llevas días sin aparecer.
+        </p>
+        {notificationsEnabled && (
+          <div>
+            <p className="font-mono text-xs text-gray-600 mb-1">Hora del recordatorio diario</p>
+            <select value={reminderHour} onChange={e => setNotifications(true, Number(e.target.value))}
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-volt">
+              {Array.from({length:24}).map((_,h)=>(
+                <option key={h} value={h}>{String(h).padStart(2,'0')}:00</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {notificationPermission() === 'denied' && (
+          <p className="text-spartan text-xs font-mono mt-2">Permiso bloqueado. Actívalo en los ajustes de tu navegador.</p>
+        )}
       </div>
 
       {/* Ritual de avances */}

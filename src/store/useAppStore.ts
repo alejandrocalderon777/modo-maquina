@@ -54,6 +54,8 @@ export const useAppStore = create<AppState>()(
       reviewDay: 0,       // domingo por defecto
       reviewHour: 20,     // 8 PM
       lastReviewSeen: undefined,
+      notificationsEnabled: false,
+      reminderHour: 19,   // 7 PM
       unlockedAchievements: [],
       pendingAchievements: [],
       workoutCompletions: {},
@@ -247,6 +249,11 @@ export const useAppStore = create<AppState>()(
 
       markReviewSeen: () => set({ lastReviewSeen: today() }),
 
+      setNotifications: (enabled, hour) => set((state) => ({
+        notificationsEnabled: enabled,
+        reminderHour: hour ?? state.reminderHour,
+      })),
+
       checkAchievements: () => {
         const state = get()
         const newly = evaluateAchievements(state, state.unlockedAchievements || [])
@@ -289,6 +296,8 @@ export const useAppStore = create<AppState>()(
         reviewDay: state.reviewDay,
         reviewHour: state.reviewHour,
         lastReviewSeen: state.lastReviewSeen,
+        notificationsEnabled: state.notificationsEnabled,
+        reminderHour: state.reminderHour,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -325,6 +334,8 @@ function snapshot(s: AppState) {
     reviewDay: s.reviewDay,
     reviewHour: s.reviewHour,
     lastReviewSeen: s.lastReviewSeen,
+    notificationsEnabled: s.notificationsEnabled,
+    reminderHour: s.reminderHour,
     workoutCompletions: s.workoutCompletions,
   }
 }

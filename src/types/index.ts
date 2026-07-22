@@ -68,6 +68,8 @@ export interface AppState {
   reviewDay: number              // 0=Dom..6=Sáb, día del ritual de avances
   reviewHour: number             // hora (0-23)
   lastReviewSeen?: string        // fecha (YYYY-MM-DD) en que vio el último ritual
+  notificationsEnabled: boolean  // recordatorios locales activados
+  reminderHour: number           // hora del recordatorio diario (0-23)
   showWhyReminder: boolean        // true tras una ausencia — el avatar lo recuerda
   unlockedAchievements: string[]  // ids de logros desbloqueados
   pendingAchievements: string[]   // ids por notificar al usuario
@@ -96,6 +98,7 @@ export interface AppState {
   dismissAntiRoutine: () => void
   setReviewSchedule: (day: number, hour: number) => void
   markReviewSeen: () => void
+  setNotifications: (enabled: boolean, hour?: number) => void
   dismissWhyReminder: () => void
   checkAchievements: () => void
   dismissAchievementNotice: () => void
