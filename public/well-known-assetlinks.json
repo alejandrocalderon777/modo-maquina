@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.vercel.modo_maquina_gamma.twa",
+    "sha256_cert_fingerprints": ["57:D1:60:98:57:14:19:2D:8F:4E:1F:AC:AC:62:37:38:C1:B2:C8:5F:01:5F:0F:D5:C4:A5:3E:0C:F7:64:8E:4B"]
+  }
+}]
