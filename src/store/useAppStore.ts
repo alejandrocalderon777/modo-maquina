@@ -56,6 +56,7 @@ export const useAppStore = create<AppState>()(
       lastReviewSeen: undefined,
       notificationsEnabled: false,
       reminderHour: 19,   // 7 PM
+      sportsLog: [],
       unlockedAchievements: [],
       pendingAchievements: [],
       workoutCompletions: {},
@@ -254,6 +255,23 @@ export const useAppStore = create<AppState>()(
         reminderHour: hour ?? state.reminderHour,
       })),
 
+      addSport: (entry) => set((state) => {
+        // Marca el día como activo (cuenta para racha, logros y anti-rutina)
+        const dayList = state.workoutCompletions[entry.date] || []
+        const tag = `deporte:${entry.name}`
+        return {
+          sportsLog: [entry, ...state.sportsLog],
+          workoutCompletions: {
+            ...state.workoutCompletions,
+            [entry.date]: dayList.includes(tag) ? dayList : [...dayList, tag],
+          },
+        }
+      }),
+
+      removeSport: (id) => set((state) => ({
+        sportsLog: state.sportsLog.filter(s => s.id !== id),
+      })),
+
       checkAchievements: () => {
         const state = get()
         const newly = evaluateAchievements(state, state.unlockedAchievements || [])
@@ -298,6 +316,7 @@ export const useAppStore = create<AppState>()(
         lastReviewSeen: state.lastReviewSeen,
         notificationsEnabled: state.notificationsEnabled,
         reminderHour: state.reminderHour,
+        sportsLog: state.sportsLog,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -336,6 +355,7 @@ function snapshot(s: AppState) {
     lastReviewSeen: s.lastReviewSeen,
     notificationsEnabled: s.notificationsEnabled,
     reminderHour: s.reminderHour,
+    sportsLog: s.sportsLog,
     workoutCompletions: s.workoutCompletions,
   }
 }

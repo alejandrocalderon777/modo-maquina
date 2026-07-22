@@ -10,6 +10,7 @@ import { ExpressWorkout } from '../components/ExpressWorkout'
 import { PhotoComparator } from '../components/PhotoComparator'
 import { detectAntiRoutine } from '../components/AntiRoutine'
 import { WeeklyReview } from '../components/WeeklyReview'
+import { SportLogger } from '../components/SportLogger'
 import { requestNotificationPermission, notificationPermission, scheduleDailyReminder, showNotification, inactiveMessage } from '../lib/notifications'
 import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
@@ -73,6 +74,9 @@ export default function Dashboard() {
   const notificationsEnabled = useAppStore((s) => s.notificationsEnabled)
   const reminderHour       = useAppStore((s) => s.reminderHour)
   const setNotifications   = useAppStore((s) => s.setNotifications)
+  const sportsLog          = useAppStore((s) => s.sportsLog)
+  const addSport           = useAppStore((s) => s.addSport)
+  const [sportOpen, setSportOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const antiRoutine        = detectAntiRoutine(useAppStore.getState())
   const nowRV = new Date()
@@ -183,6 +187,24 @@ export default function Dashboard() {
       showNotification({ title: '🔔 Listo', body: 'Te avisaré con cariño, nunca con culpa. Vamos con todo.', tag: 'welcome' })
     }
   }
+
+  const handleSaveSport = (data: { sport: { id:string; name:string; emoji:string; type:'cardio'|'fuerza'|'mixto'; met:number }; minutes: number; cal: number }) => {
+    addSport({
+      id: `sport-${Date.now()}`,
+      sportId: data.sport.id,
+      name: data.sport.name,
+      emoji: data.sport.emoji,
+      type: data.sport.type,
+      minutes: data.minutes,
+      cal: data.cal,
+      date: todayStr,
+      timestamp: Date.now(),
+    })
+    addXP(30)
+    setSportOpen(false)
+  }
+
+  const todaySports = (sportsLog || []).filter(s => s.date === todayStr)
 
   const handleToggleWorkout = (name: string) => {
     const wasDone = todayDone.includes(name)
@@ -612,6 +634,37 @@ export default function Dashboard() {
               <div key={i} className="rounded-lg px-3 py-2 flex items-start gap-2" style={{ background:'#1C1F28' }}>
                 <span className="font-mono text-xs" style={{ color:accentColor }}>→</span>
                 <p className="flex-1 text-gray-300 text-xs font-body leading-relaxed">{s}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Registrar deporte */}
+      <button onClick={() => setSportOpen(true)}
+        className="mx-4 mb-3 w-[calc(100%-2rem)] rounded-2xl p-4 flex items-center gap-3 text-left active:scale-98 transition-transform"
+        style={{ background:'#1C1F28', border:`1px solid ${accentColor}33` }}>
+        <span className="text-2xl">⚽</span>
+        <div className="flex-1">
+          <p className="text-white font-display font-bold text-sm">Registrar deporte</p>
+          <p className="text-gray-500 text-xs font-body mt-0.5">Fútbol, pádel, natación… también cuenta como entrenamiento</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+
+      {/* Deportes de hoy */}
+      {todaySports.length > 0 && (
+        <div className="mx-4 mb-3 rounded-2xl p-4 bg-gray-900">
+          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-2">Deportes de hoy</p>
+          <div className="space-y-1.5">
+            {todaySports.map(s => (
+              <div key={s.id} className="flex items-center gap-3 py-1.5">
+                <span className="text-xl">{s.emoji}</span>
+                <div className="flex-1">
+                  <p className="text-white font-body text-sm">{s.name}</p>
+                  <p className="font-mono text-xs text-gray-600">{s.minutes} min · {s.type}</p>
+                </div>
+                <span className="font-mono text-sm" style={{ color:accentColor }}>{s.cal} kcal</span>
               </div>
             ))}
           </div>
@@ -1634,6 +1687,12 @@ export default function Dashboard() {
           style={{ top:'-6px', right:'-6px', width:'20px', height:'20px', borderRadius:'50%',
             background:'#E23A2E', color:'#fff', fontSize:'14px', lineHeight:1 }}>+</span>
       </button>
+
+      {/* Registrar deporte */}
+      {sportOpen && (
+        <SportLogger accentColor={accentColor} weightKg={measurements.weight}
+          onClose={() => setSportOpen(false)} onSave={handleSaveSport} />
+      )}
 
       {/* Ritual de avances */}
       {reviewOpen && (

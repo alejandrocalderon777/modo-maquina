@@ -25,6 +25,18 @@ export interface DayMacros {
   water: { consumed: number; target: number }
 }
 
+export interface SportEntry {
+  id: string
+  sportId: string
+  name: string
+  emoji: string
+  type: 'cardio' | 'fuerza' | 'mixto'
+  minutes: number
+  cal: number
+  date: string
+  timestamp: number
+}
+
 export interface FoodEntry {
   id: string
   foodId: string
@@ -70,6 +82,7 @@ export interface AppState {
   lastReviewSeen?: string        // fecha (YYYY-MM-DD) en que vio el último ritual
   notificationsEnabled: boolean  // recordatorios locales activados
   reminderHour: number           // hora del recordatorio diario (0-23)
+  sportsLog: SportEntry[]        // deportes registrados
   showWhyReminder: boolean        // true tras una ausencia — el avatar lo recuerda
   unlockedAchievements: string[]  // ids de logros desbloqueados
   pendingAchievements: string[]   // ids por notificar al usuario
@@ -99,6 +112,8 @@ export interface AppState {
   setReviewSchedule: (day: number, hour: number) => void
   markReviewSeen: () => void
   setNotifications: (enabled: boolean, hour?: number) => void
+  addSport: (entry: SportEntry) => void
+  removeSport: (id: string) => void
   dismissWhyReminder: () => void
   checkAchievements: () => void
   dismissAchievementNotice: () => void
