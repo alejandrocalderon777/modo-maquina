@@ -6,6 +6,7 @@ import { MUSCLE_GROUPS, exercisesByMuscle, exerciseImages, type MuscleGroup } fr
 import { ExerciseImage } from '../components/ExerciseImage'
 import { AchievementToast } from '../components/AchievementToast'
 import { WhyRecorder } from '../components/WhyRecorder'
+import { ExpressWorkout } from '../components/ExpressWorkout'
 import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
@@ -60,6 +61,7 @@ export default function Dashboard() {
   const setWorkoutFeedback = useAppStore((s) => s.setWorkoutFeedback)
   const clearInjury        = useAppStore((s) => s.clearInjury)
   const [askPainZone, setAskPainZone] = useState(false)
+  const [expressOpen, setExpressOpen] = useState(false)
   const [whyOpen, setWhyOpen] = useState(false)
 
   const todayStr = new Date().toISOString().split('T')[0]
@@ -143,6 +145,13 @@ export default function Dashboard() {
     const wasDone = todayDone.includes(name)
     toggleWorkout(todayStr, name)
     if (!wasDone) addXP(25)
+  }
+
+  const completeExpress = () => {
+    // Marca la sesión del día como cumplida usando el plan actual
+    WORKOUT_PLAN.forEach(w => { if (!todayDone.includes(w.name)) toggleWorkout(todayStr, w.name) })
+    addXP(100)
+    setExpressOpen(false)
   }
 
   const WEEK_DAYS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
@@ -565,7 +574,7 @@ export default function Dashboard() {
                      border:`1px solid ${accentColor}44` }}>
             {doneCount === WORKOUT_PLAN.length ? '🔥 SESIÓN COMPLETADA' : '▶ COMPLETAR SESIÓN'}
           </button>
-          <button className="w-full py-2 text-xs font-mono text-gray-600 mt-1">No puedo hoy → Versión exprés 15 min</button>
+          <button onClick={() => setExpressOpen(true)} className="w-full py-2 text-xs font-mono mt-1" style={{ color:'#6FD3E8' }}>No puedo hoy → Versión exprés 15 min ⚡</button>
         </div>
 
         {/* Feedback post-sesión (aparece al completar todo) */}
@@ -1478,6 +1487,13 @@ export default function Dashboard() {
           style={{ top:'-6px', right:'-6px', width:'20px', height:'20px', borderRadius:'50%',
             background:'#E23A2E', color:'#fff', fontSize:'14px', lineHeight:1 }}>+</span>
       </button>
+
+      {/* Rutina exprés sin excusas */}
+      {expressOpen && (
+        <ExpressWorkout accentColor={accentColor}
+          onClose={() => setExpressOpen(false)}
+          onComplete={completeExpress} />
+      )}
 
       {/* Grabador del porqué */}
       {whyOpen && (
