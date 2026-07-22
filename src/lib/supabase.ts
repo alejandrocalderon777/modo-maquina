@@ -118,6 +118,7 @@ export async function adjustWorkout(params: {
   goal?: string
   level?: string
   daysPerWeek?: number
+  injury?: string
 }): Promise<AdjustedPlan> {
   const { data, error } = await supabase.functions.invoke('adjust-workout', { body: params })
   if (error) throw error

@@ -39,6 +39,12 @@ export interface FoodEntry {
   timestamp: number
 }
 
+export type WorkoutFeedbackLevel = 'easy' | 'good' | 'hard' | 'pain'
+export interface WorkoutFeedback {
+  level: WorkoutFeedbackLevel
+  zone?: string   // si reportó dolor
+}
+
 export interface AppState {
   onboardingComplete: boolean
   profile: Partial<UserProfile>; measurements: Partial<Measurements>
@@ -51,6 +57,8 @@ export interface AppState {
   protectorsMonth: string       // YYYY-MM del último refill
   protectorUsedDate?: string    // fecha en que se usó el último protector (para avisar)
   whyRecording?: { audio?: string; text?: string; date: string }  // el "porqué" grabado
+  workoutFeedback: Record<string, WorkoutFeedback>  // por fecha
+  activeInjury?: { zone: string; date: string }     // lesión activa que ajusta el plan
   showWhyReminder: boolean        // true tras una ausencia — el avatar lo recuerda
   unlockedAchievements: string[]  // ids de logros desbloqueados
   pendingAchievements: string[]   // ids por notificar al usuario
@@ -70,6 +78,8 @@ export interface AppState {
   checkAndUpdateStreak: () => void
   dismissProtectorNotice: () => void
   setWhyRecording: (data: { audio?: string; text?: string }) => void
+  setWorkoutFeedback: (date: string, fb: WorkoutFeedback) => void
+  clearInjury: () => void
   dismissWhyReminder: () => void
   checkAchievements: () => void
   dismissAchievementNotice: () => void

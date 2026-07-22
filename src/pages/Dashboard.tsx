@@ -55,6 +55,11 @@ export default function Dashboard() {
   const showWhyReminder    = useAppStore((s) => s.showWhyReminder)
   const setWhyRecording    = useAppStore((s) => s.setWhyRecording)
   const dismissWhyReminder = useAppStore((s) => s.dismissWhyReminder)
+  const workoutFeedback    = useAppStore((s) => s.workoutFeedback)
+  const activeInjury       = useAppStore((s) => s.activeInjury)
+  const setWorkoutFeedback = useAppStore((s) => s.setWorkoutFeedback)
+  const clearInjury        = useAppStore((s) => s.clearInjury)
+  const [askPainZone, setAskPainZone] = useState(false)
   const [whyOpen, setWhyOpen] = useState(false)
 
   const todayStr = new Date().toISOString().split('T')[0]
@@ -172,6 +177,7 @@ export default function Dashboard() {
         goal: profile.goal ? goalMap[profile.goal] : undefined,
         level: profile.level,
         daysPerWeek: profile.daysPerWeek,
+        injury: activeInjury?.zone,
       })
       setAdjustedPlan(res)
     } catch {
@@ -504,6 +510,24 @@ export default function Dashboard() {
   )
 
   // ── WORKOUT tab ──────────────────────────────────────────────
+  const todayFeedback = workoutFeedback[todayStr]
+  const FB_OPTS = [
+    { level:'easy', emoji:'😎', label:'Muy fácil', color:'#6FD3E8' },
+    { level:'good', emoji:'💪', label:'Bien',      color:'#CEFF3C' },
+    { level:'hard', emoji:'🥵', label:'Muy duro',  color:'#DE782C' },
+    { level:'pain', emoji:'🤕', label:'Me dolió',  color:'#E23A2E' },
+  ] as const
+  const PAIN_ZONES = ['Rodilla','Hombro','Espalda baja','Muñeca','Cuello','Tobillo','Cadera','Otra']
+
+  const handleFeedback = (level: 'easy'|'good'|'hard'|'pain') => {
+    if (level === 'pain') { setAskPainZone(true); return }
+    setWorkoutFeedback(todayStr, { level })
+  }
+  const handlePainZone = (zone: string) => {
+    setWorkoutFeedback(todayStr, { level:'pain', zone })
+    setAskPainZone(false)
+  }
+
   const WorkoutContent = (
     <>
       <div className="mx-4 mb-3 rounded-2xl overflow-hidden bg-gray-900">
@@ -543,7 +567,78 @@ export default function Dashboard() {
           </button>
           <button className="w-full py-2 text-xs font-mono text-gray-600 mt-1">No puedo hoy → Versión exprés 15 min</button>
         </div>
+
+        {/* Feedback post-sesión (aparece al completar todo) */}
+        {doneCount === WORKOUT_PLAN.length && (
+          <div className="px-4 pb-4 pt-1 border-t border-gray-800">
+            {!todayFeedback && !askPainZone && (
+              <>
+                <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3 mt-3">¿Cómo se sintió?</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {FB_OPTS.map(o => (
+                    <button key={o.level} onClick={() => handleFeedback(o.level)}
+                      className="flex flex-col items-center gap-1 py-3 rounded-xl active:scale-95 transition-transform"
+                      style={{ background:'#1C1F28', border:`1px solid ${o.color}33` }}>
+                      <span style={{ fontSize:24 }}>{o.emoji}</span>
+                      <span className="font-mono" style={{ fontSize:'9px', color:o.color }}>{o.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {askPainZone && (
+              <>
+                <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3 mt-3">¿Dónde te dolió?</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {PAIN_ZONES.map(z => (
+                    <button key={z} onClick={() => handlePainZone(z)}
+                      className="py-2.5 rounded-xl font-mono active:scale-95 transition-transform"
+                      style={{ background:'#1C1F28', border:'1px solid #E23A2E33', color:'#E23A2E', fontSize:'10px' }}>
+                      {z}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setAskPainZone(false)} className="w-full mt-2 py-1.5 font-mono text-xs text-gray-600">← volver</button>
+              </>
+            )}
+
+            {todayFeedback && (
+              <div className="mt-3 rounded-xl p-3 flex items-start gap-3"
+                style={{ background:'#1C1F28', border:`1px solid ${FB_OPTS.find(o=>o.level===todayFeedback.level)?.color}44` }}>
+                <span style={{ fontSize:22 }}>{FB_OPTS.find(o=>o.level===todayFeedback.level)?.emoji}</span>
+                <div className="flex-1">
+                  <p className="text-white font-body text-sm">
+                    {todayFeedback.level === 'easy'  && 'Muy fácil — la próxima subimos la intensidad.'}
+                    {todayFeedback.level === 'good'  && '¡Bien! Ese es el punto justo. Seguimos así.'}
+                    {todayFeedback.level === 'hard'  && 'Muy duro — bajaré un poco la carga la próxima sesión.'}
+                    {todayFeedback.level === 'pain'  && `Anotado el dolor en ${todayFeedback.zone?.toLowerCase()}. Ajustaré la semana evitando impacto en esa zona.`}
+                  </p>
+                  <p className="font-mono text-xs text-gray-600 mt-1">Registrado · influye en tu próximo plan</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Aviso de lesión activa */}
+      {activeInjury && (
+        <div className="mx-4 mb-3 rounded-2xl p-4 flex items-start gap-3"
+          style={{ background:'#E23A2E12', border:'1px solid #E23A2E44' }}>
+          <span className="text-2xl flex-shrink-0">🤕</span>
+          <div className="flex-1">
+            <p className="text-white font-display font-bold text-sm">Cuidando tu {activeInjury.zone.toLowerCase()}</p>
+            <p className="text-gray-400 text-xs font-body mt-0.5 leading-relaxed">
+              Reportaste dolor el {new Date(activeInjury.date + 'T12:00:00').toLocaleDateString('es-CL', { day:'numeric', month:'short' })}.
+              El plan evitará ejercicios de impacto en esa zona. Usa "Recalcular con IA" para adaptar la semana.
+            </p>
+            <button onClick={clearInjury} className="font-mono text-xs mt-2" style={{ color:'#6FD3E8' }}>
+              Ya me siento bien →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Weekly plan */}
       <div className="mx-4 mb-4 rounded-2xl p-4 bg-gray-900">

@@ -44,6 +44,8 @@ export const useAppStore = create<AppState>()(
       protectorUsedDate: undefined,
       whyRecording: undefined,
       showWhyReminder: false,
+      workoutFeedback: {},
+      activeInjury: undefined,
       unlockedAchievements: [],
       pendingAchievements: [],
       workoutCompletions: {},
@@ -191,6 +193,16 @@ export const useAppStore = create<AppState>()(
 
       dismissWhyReminder: () => set({ showWhyReminder: false }),
 
+      setWorkoutFeedback: (date, fb) =>
+        set((state) => ({
+          workoutFeedback: { ...state.workoutFeedback, [date]: fb },
+          activeInjury: fb.level === 'pain' && fb.zone
+            ? { zone: fb.zone, date }
+            : state.activeInjury,
+        })),
+
+      clearInjury: () => set({ activeInjury: undefined }),
+
       checkAchievements: () => {
         const state = get()
         const newly = evaluateAchievements(state, state.unlockedAchievements || [])
@@ -223,6 +235,8 @@ export const useAppStore = create<AppState>()(
         protectorUsedDate: state.protectorUsedDate,
         unlockedAchievements: state.unlockedAchievements,
         whyRecording: state.whyRecording,
+        workoutFeedback: state.workoutFeedback,
+        activeInjury: state.activeInjury,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -249,6 +263,8 @@ function snapshot(s: AppState) {
     protectorUsedDate: s.protectorUsedDate,
     unlockedAchievements: s.unlockedAchievements,
     whyRecording: s.whyRecording,
+    workoutFeedback: s.workoutFeedback,
+    activeInjury: s.activeInjury,
     workoutCompletions: s.workoutCompletions,
   }
 }

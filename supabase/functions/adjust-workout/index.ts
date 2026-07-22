@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { currentPlan, missedDays, goal, level, daysPerWeek, remainingDays } = await req.json()
+    const { currentPlan, missedDays, goal, level, daysPerWeek, remainingDays, injury } = await req.json()
 
     const anthropic = new Anthropic({
       apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
@@ -23,7 +23,8 @@ Días no cumplidos: ${JSON.stringify(missedDays)}
 Días restantes en la semana: ${JSON.stringify(remainingDays)}
 Objetivo del usuario: ${goal || 'ganar músculo'}
 Nivel: ${level || 'intermedio'}
-Días de entrenamiento por semana: ${daysPerWeek || 4}`
+Días de entrenamiento por semana: ${daysPerWeek || 4}
+${injury ? `⚠️ LESIÓN ACTIVA: dolor en ${injury}. Evita TODO ejercicio que cargue o impacte esa zona; sustituye por alternativas seguras y explícalo.` : ''}`
 
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-8',
@@ -34,7 +35,7 @@ Días de entrenamiento por semana: ${daysPerWeek || 4}`
 
 ${context}
 
-Reorganiza el plan de los DÍAS RESTANTES de la semana para recuperar el trabajo muscular perdido sin sobrecargar. Prioriza los grupos musculares que quedaron sin entrenar. Respeta el nivel y los días disponibles. Si no alcanza a recuperar todo, prioriza los grupos más importantes para el objetivo.
+Reorganiza el plan de los DÍAS RESTANTES de la semana para recuperar el trabajo muscular perdido sin sobrecargar. Prioriza los grupos musculares que quedaron sin entrenar. Respeta el nivel y los días disponibles. Si hay una lesión activa, la seguridad es la máxima prioridad: evita por completo cargar la zona lesionada. Si no alcanza a recuperar todo, prioriza los grupos más importantes para el objetivo.
 
 Grupos musculares válidos: Pecho, Espalda, Piernas, Hombros, Bíceps, Tríceps, Core, Glúteos, Cardio.
 
