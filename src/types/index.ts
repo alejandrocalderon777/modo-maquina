@@ -25,6 +25,12 @@ export interface DayMacros {
   water: { consumed: number; target: number }
 }
 
+export type WorkoutFocus = 'Tren superior' | 'Tren inferior' | 'Full body' | 'Empuje' | 'Tirón' | 'Piernas' | 'Cardio' | 'Core' | 'Descanso'
+export interface WeekDayPlan {
+  day: string      // Lun..Dom
+  focus: WorkoutFocus
+}
+
 export interface SportEntry {
   id: string
   sportId: string
@@ -88,6 +94,7 @@ export interface AppState {
   foodReminderEnabled: boolean
   foodReminderHour: number       // hora a la que revisa si registraste comida
   sportsLog: SportEntry[]        // deportes registrados
+  weekPlan: WeekDayPlan[]        // plan semanal de entrenamiento editable (7 días)
   showWhyReminder: boolean        // true tras una ausencia — el avatar lo recuerda
   unlockedAchievements: string[]  // ids de logros desbloqueados
   pendingAchievements: string[]   // ids por notificar al usuario
@@ -119,6 +126,9 @@ export interface AppState {
   setNotifications: (enabled: boolean, hour?: number) => void
   setWorkoutReminder: (enabled: boolean, days?: number[], hour?: number) => void
   setFoodReminder: (enabled: boolean, hour?: number) => void
+  changePhase: (goal: Goal) => void          // cambia fase y recalcula macros
+  adjustCalories: (delta: number) => void    // ajuste fino manual de calorías
+  setWeekDay: (index: number, plan: Partial<WeekDayPlan>) => void
   addSport: (entry: SportEntry) => void
   removeSport: (id: string) => void
   dismissWhyReminder: () => void

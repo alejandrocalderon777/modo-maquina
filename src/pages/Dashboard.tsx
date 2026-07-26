@@ -16,6 +16,7 @@ import { subscribeToPush, updatePushSettings, unsubscribeFromPush, type Reminder
 import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
+import { MiPlan } from '../components/MiPlan'
 import type { Emotion } from '../types'
 
 const EMOTION_CONFIG: Record<number, { emoji: string; label: string; color: string }> = {
@@ -136,6 +137,8 @@ export default function Dashboard() {
   )
 
   const [activeTab, setActiveTab] = useState<Tab>('home')
+  const [showMiPlan, setShowMiPlan] = useState(false)
+  const weekPlan = useAppStore((s) => s.weekPlan)
   const [progressPeriod, setProgressPeriod] = useState<'day'|'week'|'month'|'year'>('week')
   const [openMuscle, setOpenMuscle] = useState<MuscleGroup | null>(null)
   const [adjusting, setAdjusting] = useState(false)
@@ -265,15 +268,7 @@ export default function Dashboard() {
   }
 
   const WEEK_DAYS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
-  const BASE_WEEK = [
-    { day:'Lun', type:'Fuerza — Tren superior' },
-    { day:'Mar', type:'Cardio — HIIT 30 min' },
-    { day:'Mié', type:'Fuerza — Tren inferior' },
-    { day:'Jue', type:'Descanso activo' },
-    { day:'Vie', type:'Fuerza — Full body' },
-    { day:'Sáb', type:'Cardio — Larga distancia' },
-    { day:'Dom', type:'Descanso' },
-  ]
+  const BASE_WEEK = weekPlan.map(d => ({ day: d.day, type: d.focus }))
 
   const handleAdjustWorkout = async () => {
     setAdjusting(true)
@@ -1411,6 +1406,16 @@ export default function Dashboard() {
 
   const AvatarContent = (
     <>
+      <button onClick={() => setShowMiPlan(true)}
+        className="mx-4 mb-4 w-[calc(100%-2rem)] flex items-center gap-3 rounded-2xl p-4 text-left"
+        style={{ background:`${accentColor}14`, border:`1px solid ${accentColor}40` }}>
+        <span className="text-2xl">📋</span>
+        <div className="flex-1">
+          <p className="font-display text-base text-white">Mi Plan</p>
+          <p className="font-mono text-[11px]" style={{ color:accentColor }}>Ver y editar fase, calorías y días de entreno</p>
+        </div>
+        <span className="font-mono text-lg" style={{ color:accentColor }}>›</span>
+      </button>
       <div className="mx-4 mb-4 rounded-2xl overflow-hidden relative"
         style={{ background:`linear-gradient(160deg, ${accentColor}20, #1C1F28)`, border:`1px solid ${accentColor}30` }}>
         <div className="flex gap-4 p-4">
@@ -1782,6 +1787,7 @@ export default function Dashboard() {
         {activeTab === 'workout'  && WorkoutContent}
         {activeTab === 'progress' && ProgressContent}
         {activeTab === 'avatar'   && AvatarContent}
+        {showMiPlan && <MiPlan accent={accentColor} onClose={() => setShowMiPlan(false)} />}
       </div>
 
 

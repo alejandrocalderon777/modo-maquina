@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { AppState, UserProfile, Measurements, Emotion, FoodEntry, BodyPhoto } from '../types'
 import { saveUserData, loadUserData } from '../lib/supabase'
 import { evaluateAchievements, getAchievement } from '../assets/achievements'
+import { calculateMacros } from '../utils/macros'
 
 const today = () => new Date().toISOString().split('T')[0]
 const MAX_PROTECTORS = 2
@@ -62,6 +63,15 @@ export const useAppStore = create<AppState>()(
       foodReminderEnabled: false,
       foodReminderHour: 21,             // 9 PM
       sportsLog: [],
+      weekPlan: [
+        { day:'Lun', focus:'Tren superior' },
+        { day:'Mar', focus:'Cardio' },
+        { day:'Mié', focus:'Tren inferior' },
+        { day:'Jue', focus:'Descanso' },
+        { day:'Vie', focus:'Full body' },
+        { day:'Sáb', focus:'Cardio' },
+        { day:'Dom', focus:'Descanso' },
+      ],
       unlockedAchievements: [],
       pendingAchievements: [],
       workoutCompletions: {},
@@ -271,6 +281,46 @@ export const useAppStore = create<AppState>()(
         foodReminderHour: hour ?? state.foodReminderHour,
       })),
 
+      changePhase: (goal) => set((state) => {
+        const m = state.measurements
+        if (!m.weight || !m.height) {
+          return { profile: { ...state.profile, goal } }
+        }
+        const r = calculateMacros({
+          weight: m.weight, height: m.height, age: m.age, sex: state.profile.sex,
+          goal, level: state.profile.level, daysPerWeek: state.profile.daysPerWeek,
+        })
+        return {
+          profile: { ...state.profile, goal },
+          macros: {
+            calories: { consumed: state.macros.calories.consumed, target: r.calories },
+            protein:  { consumed: state.macros.protein.consumed,  target: r.protein },
+            carbs:    { consumed: state.macros.carbs.consumed,    target: r.carbs },
+            fat:      { consumed: state.macros.fat.consumed,      target: r.fat },
+            water:    state.macros.water,
+          },
+        }
+      }),
+
+      adjustCalories: (delta) => set((state) => {
+        const cal = Math.max(1000, state.macros.calories.target + delta)
+        // Reparte el delta manteniendo proteína fija y ajustando carbos
+        const protCal = state.macros.protein.target * 4
+        const fatCal = state.macros.fat.target * 9
+        const carbs = Math.max(50, Math.round((cal - protCal - fatCal) / 4))
+        return {
+          macros: {
+            ...state.macros,
+            calories: { ...state.macros.calories, target: cal },
+            carbs: { ...state.macros.carbs, target: carbs },
+          },
+        }
+      }),
+
+      setWeekDay: (index, plan) => set((state) => ({
+        weekPlan: state.weekPlan.map((d, i) => i === index ? { ...d, ...plan } : d),
+      })),
+
       addSport: (entry) => set((state) => {
         // Marca el día como activo (cuenta para racha, logros y anti-rutina)
         const dayList = state.workoutCompletions[entry.date] || []
@@ -338,6 +388,7 @@ export const useAppStore = create<AppState>()(
         foodReminderEnabled: state.foodReminderEnabled,
         foodReminderHour: state.foodReminderHour,
         sportsLog: state.sportsLog,
+        weekPlan: state.weekPlan,
         workoutCompletions: state.workoutCompletions,
       }),
     }
@@ -382,6 +433,7 @@ function snapshot(s: AppState) {
     foodReminderEnabled: s.foodReminderEnabled,
     foodReminderHour: s.foodReminderHour,
     sportsLog: s.sportsLog,
+    weekPlan: s.weekPlan,
     workoutCompletions: s.workoutCompletions,
   }
 }
