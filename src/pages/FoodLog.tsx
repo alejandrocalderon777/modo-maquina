@@ -1369,7 +1369,7 @@ export default function FoodLog() {
           { id:'avatar',   icon:'⚡', label:'Avatar',   path:'/dashboard' },
         ]).map(tab => (
           <button key={tab.id}
-            onClick={() => { if (tab.path) navigate(tab.path) }}
+            onClick={() => { if (tab.path) navigate(tab.path, { state: { tab: tab.id } }) }}
             className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all"
             style={{ color: tab.id === 'food' ? accentColor : '#555' }}>
             <span className="text-xl">{tab.icon}</span>

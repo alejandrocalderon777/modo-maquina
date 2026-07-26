@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore'
 import { LINEAGES, LINEAGE_COACH_PHRASES } from '../assets/data'
 import { MUSCLE_GROUPS, exercisesByMuscle, exerciseImages, type MuscleGroup } from '../assets/exercises'
@@ -38,6 +38,7 @@ type Tab = 'home' | 'workout' | 'food' | 'progress' | 'avatar'
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const location = useLocation()
   const profile              = useAppStore((s) => s.profile)
   const measurements         = useAppStore((s) => s.measurements)
   const streakDays           = useAppStore((s) => s.streakDays)
@@ -136,7 +137,7 @@ export default function Dashboard() {
     emotionIsToday ? (profile.emotionToday || null) : null
   )
 
-  const [activeTab, setActiveTab] = useState<Tab>('home')
+  const [activeTab, setActiveTab] = useState<Tab>(((location.state as { tab?: Tab } | null)?.tab) ?? 'home')
   const [showMiPlan, setShowMiPlan] = useState(false)
   const weekPlan = useAppStore((s) => s.weekPlan)
   const [progressPeriod, setProgressPeriod] = useState<'day'|'week'|'month'|'year'>('week')
@@ -312,6 +313,11 @@ export default function Dashboard() {
       setAdjusting(false)
     }
   }
+
+  useEffect(() => {
+    const t = (location.state as { tab?: Tab } | null)?.tab
+    if (t) setActiveTab(t)
+  }, [location.state])
 
   const handleTabClick = (id: Tab) => {
     if (id === 'food') { navigate('/food-log'); return }
