@@ -163,7 +163,14 @@ export function MiPlan({ accent, onClose }: { accent: string; onClose: () => voi
                       <span className={`flex-1 text-left font-body text-sm ${rest ? 'text-gray-500' : 'text-white'}`}>
                         {d.focus}
                       </span>
-                      <span className="font-mono text-[10px] text-gray-600">{isEditing ? '▲' : 'editar'}</span>
+                      {!rest && (
+                        <input type="time" value={d.time || '18:00'}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => setWeekDay(i, { time: e.target.value })}
+                          className="bg-[#111318] border border-gray-700 rounded-lg px-2 py-1 text-white font-mono text-xs focus:outline-none"
+                          style={{ colorScheme: 'dark' }} />
+                      )}
+                      <span className="font-mono text-[10px] text-gray-600">{isEditing ? '▲' : 'foco'}</span>
                     </button>
                     {isEditing && (
                       <div className="px-3 pb-3 grid grid-cols-3 gap-1.5">

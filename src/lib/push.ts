@@ -16,6 +16,7 @@ export interface ReminderSettings {
   workoutEnabled: boolean
   workoutDays: number[]
   workoutHour: number
+  workoutTimes?: Record<string, string>  // dow(0-6) -> 'HH:MM'
   foodEnabled: boolean
   foodHour: number
   lineage?: string

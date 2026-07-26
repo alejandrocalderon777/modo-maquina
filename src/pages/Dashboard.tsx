@@ -176,6 +176,17 @@ export default function Dashboard() {
   }, [streakDays, maxStreak, xpPoints, foodLog.length, bodyPhotos.length,
       todayDone.length, macros.protein.consumed, macros.water.consumed, streakProtectors])
 
+  // Mapa de horas de entreno por día (dow 0=Dom..6=Sáb) desde el plan semanal
+  const workoutTimesByDow: Record<number, string> = {}
+  const workoutDaysFromPlan: number[] = []
+  weekPlan.forEach((d, i) => {
+    if (d.focus !== 'Descanso' && d.time) {
+      const dow = (i + 1) % 7 // Lun(0)->1 ... Dom(6)->0
+      workoutTimesByDow[dow] = d.time
+      workoutDaysFromPlan.push(dow)
+    }
+  })
+
   // Recordatorios locales (diario + entrenamiento + comida)
   useEffect(() => {
     if (notificationsEnabled && notificationPermission() === 'granted') {
@@ -183,8 +194,7 @@ export default function Dashboard() {
         dailyHour: reminderHour,
         lineage: profile.lineage,
         streakDays,
-        workoutDays: workoutReminderDays,
-        workoutHour: workoutReminderHour,
+        workoutTimes: workoutTimesByDow,
         workoutEnabled: workoutReminderEnabled,
         foodEnabled: foodReminderEnabled,
         foodHour: foodReminderHour,
@@ -192,7 +202,7 @@ export default function Dashboard() {
       })
     }
   }, [notificationsEnabled, reminderHour, profile.lineage, streakDays,
-      workoutReminderEnabled, workoutReminderDays, workoutReminderHour, foodReminderEnabled, foodReminderHour])
+      workoutReminderEnabled, weekPlan, foodReminderEnabled, foodReminderHour])
 
   // Sincroniza la config de horarios al servidor de push
   useEffect(() => {
@@ -200,14 +210,15 @@ export default function Dashboard() {
       updatePushSettings({
         dailyHour: reminderHour,
         workoutEnabled: workoutReminderEnabled,
-        workoutDays: workoutReminderDays,
+        workoutDays: workoutDaysFromPlan,
         workoutHour: workoutReminderHour,
+        workoutTimes: workoutTimesByDow,
         foodEnabled: foodReminderEnabled,
         foodHour: foodReminderHour,
         lineage: profile.lineage,
       })
     }
-  }, [notificationsEnabled, reminderHour, workoutReminderEnabled, workoutReminderDays, workoutReminderHour, foodReminderEnabled, foodReminderHour, profile.lineage])
+  }, [notificationsEnabled, reminderHour, workoutReminderEnabled, weekPlan, workoutReminderHour, foodReminderEnabled, foodReminderHour, profile.lineage])
 
   // Aviso empático al volver tras inactividad
   useEffect(() => {
@@ -219,8 +230,9 @@ export default function Dashboard() {
   const buildReminderSettings = (): ReminderSettings => ({
     dailyHour: reminderHour,
     workoutEnabled: workoutReminderEnabled,
-    workoutDays: workoutReminderDays,
+    workoutDays: workoutDaysFromPlan,
     workoutHour: workoutReminderHour,
+    workoutTimes: workoutTimesByDow,
     foodEnabled: foodReminderEnabled,
     foodHour: foodReminderHour,
     lineage: profile.lineage,
@@ -1522,31 +1534,23 @@ export default function Dashboard() {
                 </button>
               </div>
               {workoutReminderEnabled && (
-                <>
-                  <p className="font-mono text-xs text-gray-600 mb-1.5">Días</p>
-                  <div className="flex gap-1 mb-2">
-                    {['D','L','M','M','J','V','S'].map((d, i) => {
-                      const on = workoutReminderDays.includes(i)
-                      return (
-                        <button key={i} onClick={() => {
-                          const next = on ? workoutReminderDays.filter(x => x !== i) : [...workoutReminderDays, i]
-                          setWorkoutReminder(true, next)
-                        }}
-                          className="flex-1 py-1.5 rounded-lg font-mono text-xs"
-                          style={{ background: on ? accentColor : '#1C1F28', color: on ? '#111318' : '#666' }}>
-                          {d}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <p className="font-mono text-xs text-gray-600 mb-1">Hora</p>
-                  <select value={workoutReminderHour} onChange={e => setWorkoutReminder(true, undefined, Number(e.target.value))}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-volt">
-                    {Array.from({length:24}).map((_,h)=>(
-                      <option key={h} value={h}>{String(h).padStart(2,'0')}:00</option>
+                <div className="bg-[#1C1F28] rounded-xl p-3 space-y-2">
+                  <p className="text-gray-400 text-xs font-body leading-relaxed">
+                    Los días y horas se toman de tu <b className="text-white">Plan</b>. Ajústalos ahí:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {weekPlan.filter(d => d.focus !== 'Descanso' && d.time).map(d => (
+                      <span key={d.day} className="font-mono text-[10px] px-2 py-1 rounded-lg"
+                        style={{ background: `${accentColor}18`, color: accentColor }}>
+                        {d.day} {d.time}
+                      </span>
                     ))}
-                  </select>
-                </>
+                  </div>
+                  <button onClick={() => { setActiveTab('avatar'); setShowMiPlan(true) }}
+                    className="font-mono text-xs mt-1" style={{ color: accentColor }}>
+                    Editar en Mi Plan →
+                  </button>
+                </div>
               )}
             </div>
 

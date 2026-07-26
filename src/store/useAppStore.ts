@@ -64,12 +64,12 @@ export const useAppStore = create<AppState>()(
       foodReminderHour: 21,             // 9 PM
       sportsLog: [],
       weekPlan: [
-        { day:'Lun', focus:'Tren superior' },
-        { day:'Mar', focus:'Cardio' },
-        { day:'Mié', focus:'Tren inferior' },
+        { day:'Lun', focus:'Tren superior', time:'18:00' },
+        { day:'Mar', focus:'Cardio',        time:'18:00' },
+        { day:'Mié', focus:'Tren inferior', time:'18:00' },
         { day:'Jue', focus:'Descanso' },
-        { day:'Vie', focus:'Full body' },
-        { day:'Sáb', focus:'Cardio' },
+        { day:'Vie', focus:'Full body',     time:'18:00' },
+        { day:'Sáb', focus:'Cardio',        time:'10:00' },
         { day:'Dom', focus:'Descanso' },
       ],
       unlockedAchievements: [],

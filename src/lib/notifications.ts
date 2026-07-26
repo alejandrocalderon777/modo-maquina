@@ -95,8 +95,7 @@ interface ReminderConfig {
   dailyHour: number
   lineage?: string
   streakDays: number
-  workoutDays: number[]       // 0=Dom..6=Sáb
-  workoutHour: number
+  workoutTimes: Record<number, string>  // dow 0=Dom..6=Sáb -> 'HH:MM'
   workoutEnabled: boolean
   foodEnabled: boolean
   foodHour: number            // hora a la que revisa si registraste comida
@@ -125,10 +124,15 @@ export function scheduleReminders(cfg: ReminderConfig) {
       })
     }
 
-    // 2) Recordatorio de entrenamiento (en los días elegidos, a la hora elegida)
-    if (cfg.workoutEnabled && cfg.workoutDays.includes(dow) && h === cfg.workoutHour && !fired('mm-last-workout-notif', day)) {
-      mark('mm-last-workout-notif', day)
-      showNotification({ title: '🏋️ Hora de entrenar', body: workoutMessage(cfg.lineage), tag: 'workout-reminder' })
+    // 2) Recordatorio de entrenamiento (por día, a la hora definida en Mi Plan)
+    const wTime = cfg.workoutTimes[dow]
+    if (cfg.workoutEnabled && wTime && !fired('mm-last-workout-notif', day)) {
+      const [wh, wm] = wTime.split(':').map(Number)
+      const nowMin = h * 60 + now.getMinutes()
+      if (nowMin >= wh * 60 + (wm || 0)) {
+        mark('mm-last-workout-notif', day)
+        showNotification({ title: '🏋️ Hora de entrenar', body: workoutMessage(cfg.lineage), tag: 'workout-reminder' })
+      }
     }
 
     // 3) Aviso de comida: si a la hora fijada no hay registro de comida hoy

@@ -24,23 +24,24 @@ const FOOD: Record<string, string> = {
   mapuche: 'No has anotado tu comida. ¿Qué comiste hoy?',
 }
 
-function localHourAndDow(tz: string): { hour: number; dow: number; day: string } {
+function localHourAndDow(tz: string): { hour: number; minute: number; dow: number; day: string } {
   try {
     const now = new Date()
     const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz, hour: 'numeric', hour12: false, weekday: 'short',
+      timeZone: tz, hour: 'numeric', minute: 'numeric', hour12: false, weekday: 'short',
       year: 'numeric', month: '2-digit', day: '2-digit',
     }).formatToParts(now)
     const get = (t: string) => parts.find(p => p.type === t)?.value || ''
     const hour = parseInt(get('hour'), 10) % 24
+    const minute = parseInt(get('minute'), 10) || 0
     const wd = get('weekday')
     const map: Record<string, number> = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 }
     const dow = map[wd] ?? 0
     const day = `${get('year')}-${get('month')}-${get('day')}`
-    return { hour, dow, day }
+    return { hour, minute, dow, day }
   } catch {
     const now = new Date()
-    return { hour: now.getUTCHours(), dow: now.getUTCDay(), day: now.toISOString().split('T')[0] }
+    return { hour: now.getUTCHours(), minute: now.getUTCMinutes(), dow: now.getUTCDay(), day: now.toISOString().split('T')[0] }
   }
 }
 
@@ -70,7 +71,7 @@ Deno.serve(async (req) => {
   let sent = 0
   for (const sub of subs || []) {
     const s = sub.settings || {}
-    const { hour, dow, day } = localHourAndDow(sub.timezone || 'UTC')
+    const { hour, minute, dow, day } = localHourAndDow(sub.timezone || 'UTC')
     const lineage = s.lineage || 'spartan'
     const lastSent = sub.last_sent || {}
     const toSend: { title: string; body: string; tag: string }[] = []
@@ -80,9 +81,16 @@ Deno.serve(async (req) => {
       toSend.push({ title: 'Modo Máquina', body: DAILY[lineage] || DAILY.spartan, tag: 'daily' })
       lastSent.daily = day
     }
-    // 2) Entrenamiento
-    if (s.workoutEnabled && Array.isArray(s.workoutDays) && s.workoutDays.includes(dow) &&
-        hour === s.workoutHour && lastSent.workout !== day) {
+    // 2) Entrenamiento — hora por día (Mi Plan). Dispara al alcanzar la hora.
+    const wTime = s.workoutTimes && s.workoutTimes[String(dow)]
+    if (s.workoutEnabled && wTime && lastSent.workout !== day) {
+      const [wh, wm] = String(wTime).split(':').map((n: string) => parseInt(n, 10))
+      if (hour * 60 + minute >= wh * 60 + (wm || 0)) {
+        toSend.push({ title: '🏋️ Hora de entrenar', body: WORKOUT[lineage] || WORKOUT.spartan, tag: 'workout' })
+        lastSent.workout = day
+      }
+    } else if (s.workoutEnabled && !s.workoutTimes && Array.isArray(s.workoutDays) &&
+               s.workoutDays.includes(dow) && hour === s.workoutHour && lastSent.workout !== day) {
       toSend.push({ title: '🏋️ Hora de entrenar', body: WORKOUT[lineage] || WORKOUT.spartan, tag: 'workout' })
       lastSent.workout = day
     }

@@ -29,6 +29,7 @@ export type WorkoutFocus = 'Tren superior' | 'Tren inferior' | 'Full body' | 'Em
 export interface WeekDayPlan {
   day: string      // Lun..Dom
   focus: WorkoutFocus
+  time?: string    // 'HH:MM' hora de entrenamiento (solo días de entreno)
 }
 
 export interface SportEntry {
