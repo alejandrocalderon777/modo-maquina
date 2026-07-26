@@ -366,6 +366,18 @@ export default function Dashboard() {
   // ── HOME tab ─────────────────────────────────────────────────
   const HomeContent = (
     <>
+      {/* Acceso rápido a Mi Plan */}
+      <button onClick={() => setShowMiPlan(true)}
+        className="mx-4 mb-4 w-[calc(100%-2rem)] flex items-center gap-3 rounded-2xl p-3.5 text-left active:scale-98 transition-transform"
+        style={{ background:`${accentColor}14`, border:`1px solid ${accentColor}40` }}>
+        <span className="text-xl">📋</span>
+        <div className="flex-1">
+          <p className="font-display text-sm text-white">Mi Plan</p>
+          <p className="font-mono text-[11px]" style={{ color:accentColor }}>Fase, calorías y días de entreno</p>
+        </div>
+        <span className="font-mono text-lg" style={{ color:accentColor }}>›</span>
+      </button>
+
       {/* Ritual de avances — recordatorio cuando llega el horario */}
       {isReviewTime && (
         <button onClick={openReview}
