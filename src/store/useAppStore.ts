@@ -56,6 +56,11 @@ export const useAppStore = create<AppState>()(
       lastReviewSeen: undefined,
       notificationsEnabled: false,
       reminderHour: 19,   // 7 PM
+      workoutReminderEnabled: false,
+      workoutReminderDays: [1, 3, 5],   // Lun, Mié, Vie por defecto
+      workoutReminderHour: 18,          // 6 PM
+      foodReminderEnabled: false,
+      foodReminderHour: 21,             // 9 PM
       sportsLog: [],
       unlockedAchievements: [],
       pendingAchievements: [],
@@ -255,6 +260,17 @@ export const useAppStore = create<AppState>()(
         reminderHour: hour ?? state.reminderHour,
       })),
 
+      setWorkoutReminder: (enabled, days, hour) => set((state) => ({
+        workoutReminderEnabled: enabled,
+        workoutReminderDays: days ?? state.workoutReminderDays,
+        workoutReminderHour: hour ?? state.workoutReminderHour,
+      })),
+
+      setFoodReminder: (enabled, hour) => set((state) => ({
+        foodReminderEnabled: enabled,
+        foodReminderHour: hour ?? state.foodReminderHour,
+      })),
+
       addSport: (entry) => set((state) => {
         // Marca el día como activo (cuenta para racha, logros y anti-rutina)
         const dayList = state.workoutCompletions[entry.date] || []
@@ -316,6 +332,11 @@ export const useAppStore = create<AppState>()(
         lastReviewSeen: state.lastReviewSeen,
         notificationsEnabled: state.notificationsEnabled,
         reminderHour: state.reminderHour,
+        workoutReminderEnabled: state.workoutReminderEnabled,
+        workoutReminderDays: state.workoutReminderDays,
+        workoutReminderHour: state.workoutReminderHour,
+        foodReminderEnabled: state.foodReminderEnabled,
+        foodReminderHour: state.foodReminderHour,
         sportsLog: state.sportsLog,
         workoutCompletions: state.workoutCompletions,
       }),
@@ -355,6 +376,11 @@ function snapshot(s: AppState) {
     lastReviewSeen: s.lastReviewSeen,
     notificationsEnabled: s.notificationsEnabled,
     reminderHour: s.reminderHour,
+    workoutReminderEnabled: s.workoutReminderEnabled,
+    workoutReminderDays: s.workoutReminderDays,
+    workoutReminderHour: s.workoutReminderHour,
+    foodReminderEnabled: s.foodReminderEnabled,
+    foodReminderHour: s.foodReminderHour,
     sportsLog: s.sportsLog,
     workoutCompletions: s.workoutCompletions,
   }

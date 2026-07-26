@@ -82,6 +82,11 @@ export interface AppState {
   lastReviewSeen?: string        // fecha (YYYY-MM-DD) en que vio el último ritual
   notificationsEnabled: boolean  // recordatorios locales activados
   reminderHour: number           // hora del recordatorio diario (0-23)
+  workoutReminderEnabled: boolean
+  workoutReminderDays: number[]  // 0=Dom..6=Sáb
+  workoutReminderHour: number
+  foodReminderEnabled: boolean
+  foodReminderHour: number       // hora a la que revisa si registraste comida
   sportsLog: SportEntry[]        // deportes registrados
   showWhyReminder: boolean        // true tras una ausencia — el avatar lo recuerda
   unlockedAchievements: string[]  // ids de logros desbloqueados
@@ -112,6 +117,8 @@ export interface AppState {
   setReviewSchedule: (day: number, hour: number) => void
   markReviewSeen: () => void
   setNotifications: (enabled: boolean, hour?: number) => void
+  setWorkoutReminder: (enabled: boolean, days?: number[], hour?: number) => void
+  setFoodReminder: (enabled: boolean, hour?: number) => void
   addSport: (entry: SportEntry) => void
   removeSport: (id: string) => void
   dismissWhyReminder: () => void

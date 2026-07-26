@@ -71,22 +71,73 @@ export function inactiveMessage(lineage?: string): string {
 // Programa el recordatorio diario: revisa cada minuto si es la hora y no se envió hoy
 let dailyTimer: ReturnType<typeof setInterval> | null = null
 
-export function scheduleDailyReminder(hour: number, lineage: string | undefined, streakDays: number) {
+
+const WORKOUT_MSGS: Record<string, string[]> = {
+  spartan: ['Es tu hora de entrenar. Un espartano cumple.', 'La batalla te espera. A entrenar.'],
+  viking:  ['Hora de entrenar, guerrero. Al Valhalla se llega entrenando.', 'El hierro te llama. Vamos.'],
+  mapuche: ['Es tu hora de moverte. Despierta el newen.', 'La fuerza de la tierra te espera. A entrenar.'],
+}
+const FOOD_MSGS: Record<string, string> = {
+  spartan: 'No has registrado tu comida hoy. Un espartano controla lo que come. ¿Qué comiste?',
+  viking:  '¿Ya comiste, guerrero? Registra tu alimentación para seguir fuerte.',
+  mapuche: 'No has anotado tu comida. El alimento es parte del equilibrio. ¿Qué comiste hoy?',
+}
+
+export function workoutMessage(lineage?: string): string {
+  const list = WORKOUT_MSGS[lineage || 'spartan'] || WORKOUT_MSGS.spartan
+  return list[Math.floor(Math.random() * list.length)]
+}
+export function foodMessage(lineage?: string): string {
+  return FOOD_MSGS[lineage || 'spartan'] || FOOD_MSGS.spartan
+}
+
+interface ReminderConfig {
+  dailyHour: number
+  lineage?: string
+  streakDays: number
+  workoutDays: number[]       // 0=Dom..6=Sáb
+  workoutHour: number
+  workoutEnabled: boolean
+  foodEnabled: boolean
+  foodHour: number            // hora a la que revisa si registraste comida
+  hasFoodToday: () => boolean // callback para saber si hay registro de comida hoy
+}
+
+export function scheduleReminders(cfg: ReminderConfig) {
   if (dailyTimer) clearInterval(dailyTimer)
-  const key = 'mm-last-daily-notif'
+  const fired = (key: string, day: string) => localStorage.getItem(key) === day
+  const mark = (key: string, day: string) => localStorage.setItem(key, day)
+
   const tick = () => {
     if (notificationPermission() !== 'granted') return
     const now = new Date()
-    const todayStr = now.toISOString().split('T')[0]
-    if (now.getHours() === hour && localStorage.getItem(key) !== todayStr) {
-      localStorage.setItem(key, todayStr)
+    const day = now.toISOString().split('T')[0]
+    const h = now.getHours()
+    const dow = now.getDay()
+
+    // 1) Recordatorio diario motivacional
+    if (h === cfg.dailyHour && !fired('mm-last-daily-notif', day)) {
+      mark('mm-last-daily-notif', day)
       showNotification({
-        title: streakDays > 0 ? `🔥 Racha de ${streakDays} días` : 'Modo Máquina',
-        body: dailyMessage(lineage),
+        title: cfg.streakDays > 0 ? `🔥 Racha de ${cfg.streakDays} días` : 'Modo Máquina',
+        body: dailyMessage(cfg.lineage),
         tag: 'daily-reminder',
       })
     }
+
+    // 2) Recordatorio de entrenamiento (en los días elegidos, a la hora elegida)
+    if (cfg.workoutEnabled && cfg.workoutDays.includes(dow) && h === cfg.workoutHour && !fired('mm-last-workout-notif', day)) {
+      mark('mm-last-workout-notif', day)
+      showNotification({ title: '🏋️ Hora de entrenar', body: workoutMessage(cfg.lineage), tag: 'workout-reminder' })
+    }
+
+    // 3) Aviso de comida: si a la hora fijada no hay registro de comida hoy
+    if (cfg.foodEnabled && h === cfg.foodHour && !fired('mm-last-food-notif', day) && !cfg.hasFoodToday()) {
+      mark('mm-last-food-notif', day)
+      showNotification({ title: '🍽️ ¿Ya comiste?', body: foodMessage(cfg.lineage), tag: 'food-reminder' })
+    }
   }
+
   dailyTimer = setInterval(tick, 60_000)
   tick()
 }

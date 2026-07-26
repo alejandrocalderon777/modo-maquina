@@ -11,7 +11,7 @@ import { PhotoComparator } from '../components/PhotoComparator'
 import { detectAntiRoutine } from '../components/AntiRoutine'
 import { WeeklyReview } from '../components/WeeklyReview'
 import { SportLogger } from '../components/SportLogger'
-import { requestNotificationPermission, notificationPermission, scheduleDailyReminder, showNotification, inactiveMessage } from '../lib/notifications'
+import { requestNotificationPermission, notificationPermission, scheduleReminders, showNotification, inactiveMessage } from '../lib/notifications'
 import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
@@ -74,6 +74,13 @@ export default function Dashboard() {
   const notificationsEnabled = useAppStore((s) => s.notificationsEnabled)
   const reminderHour       = useAppStore((s) => s.reminderHour)
   const setNotifications   = useAppStore((s) => s.setNotifications)
+  const workoutReminderEnabled = useAppStore((s) => s.workoutReminderEnabled)
+  const workoutReminderDays    = useAppStore((s) => s.workoutReminderDays)
+  const workoutReminderHour    = useAppStore((s) => s.workoutReminderHour)
+  const foodReminderEnabled    = useAppStore((s) => s.foodReminderEnabled)
+  const foodReminderHour       = useAppStore((s) => s.foodReminderHour)
+  const setWorkoutReminder     = useAppStore((s) => s.setWorkoutReminder)
+  const setFoodReminder        = useAppStore((s) => s.setFoodReminder)
   const sportsLog          = useAppStore((s) => s.sportsLog)
   const addSport           = useAppStore((s) => s.addSport)
   const [sportOpen, setSportOpen] = useState(false)
@@ -165,12 +172,23 @@ export default function Dashboard() {
   }, [streakDays, maxStreak, xpPoints, foodLog.length, bodyPhotos.length,
       todayDone.length, macros.protein.consumed, macros.water.consumed, streakProtectors])
 
-  // Recordatorio diario local
+  // Recordatorios locales (diario + entrenamiento + comida)
   useEffect(() => {
     if (notificationsEnabled && notificationPermission() === 'granted') {
-      scheduleDailyReminder(reminderHour, profile.lineage, streakDays)
+      scheduleReminders({
+        dailyHour: reminderHour,
+        lineage: profile.lineage,
+        streakDays,
+        workoutDays: workoutReminderDays,
+        workoutHour: workoutReminderHour,
+        workoutEnabled: workoutReminderEnabled,
+        foodEnabled: foodReminderEnabled,
+        foodHour: foodReminderHour,
+        hasFoodToday: () => useAppStore.getState().foodLog.some(e => e.date === new Date().toISOString().split('T')[0]),
+      })
     }
-  }, [notificationsEnabled, reminderHour, profile.lineage, streakDays])
+  }, [notificationsEnabled, reminderHour, profile.lineage, streakDays,
+      workoutReminderEnabled, workoutReminderDays, workoutReminderHour, foodReminderEnabled, foodReminderHour])
 
   // Aviso empático al volver tras inactividad
   useEffect(() => {
@@ -1449,14 +1467,83 @@ export default function Dashboard() {
           Recordatorios amables, nunca culposos. El coach te busca cuando llevas días sin aparecer.
         </p>
         {notificationsEnabled && (
-          <div>
-            <p className="font-mono text-xs text-gray-600 mb-1">Hora del recordatorio diario</p>
-            <select value={reminderHour} onChange={e => setNotifications(true, Number(e.target.value))}
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-volt">
-              {Array.from({length:24}).map((_,h)=>(
-                <option key={h} value={h}>{String(h).padStart(2,'0')}:00</option>
-              ))}
-            </select>
+          <div className="space-y-4">
+            <div>
+              <p className="font-mono text-xs text-gray-600 mb-1">Hora del recordatorio diario</p>
+              <select value={reminderHour} onChange={e => setNotifications(true, Number(e.target.value))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-volt">
+                {Array.from({length:24}).map((_,h)=>(
+                  <option key={h} value={h}>{String(h).padStart(2,'0')}:00</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Recordatorio de entrenamiento */}
+            <div className="pt-3 border-t border-gray-800">
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-mono text-xs text-gray-400">🏋️ Recordar entrenar</p>
+                <button onClick={() => setWorkoutReminder(!workoutReminderEnabled)}
+                  className="relative w-10 h-5 rounded-full transition-colors"
+                  style={{ background: workoutReminderEnabled ? accentColor : '#333' }}>
+                  <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
+                    style={{ left: workoutReminderEnabled ? '22px' : '2px' }} />
+                </button>
+              </div>
+              {workoutReminderEnabled && (
+                <>
+                  <p className="font-mono text-xs text-gray-600 mb-1.5">Días</p>
+                  <div className="flex gap-1 mb-2">
+                    {['D','L','M','M','J','V','S'].map((d, i) => {
+                      const on = workoutReminderDays.includes(i)
+                      return (
+                        <button key={i} onClick={() => {
+                          const next = on ? workoutReminderDays.filter(x => x !== i) : [...workoutReminderDays, i]
+                          setWorkoutReminder(true, next)
+                        }}
+                          className="flex-1 py-1.5 rounded-lg font-mono text-xs"
+                          style={{ background: on ? accentColor : '#1C1F28', color: on ? '#111318' : '#666' }}>
+                          {d}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="font-mono text-xs text-gray-600 mb-1">Hora</p>
+                  <select value={workoutReminderHour} onChange={e => setWorkoutReminder(true, undefined, Number(e.target.value))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-volt">
+                    {Array.from({length:24}).map((_,h)=>(
+                      <option key={h} value={h}>{String(h).padStart(2,'0')}:00</option>
+                    ))}
+                  </select>
+                </>
+              )}
+            </div>
+
+            {/* Aviso de comida */}
+            <div className="pt-3 border-t border-gray-800">
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-mono text-xs text-gray-400">🍽️ Avisar si no registro comida</p>
+                <button onClick={() => setFoodReminder(!foodReminderEnabled)}
+                  className="relative w-10 h-5 rounded-full transition-colors"
+                  style={{ background: foodReminderEnabled ? accentColor : '#333' }}>
+                  <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
+                    style={{ left: foodReminderEnabled ? '22px' : '2px' }} />
+                </button>
+              </div>
+              {foodReminderEnabled && (
+                <>
+                  <p className="font-mono text-xs text-gray-600 mb-1">Revisar a las</p>
+                  <select value={foodReminderHour} onChange={e => setFoodReminder(true, Number(e.target.value))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-volt">
+                    {Array.from({length:24}).map((_,h)=>(
+                      <option key={h} value={h}>{String(h).padStart(2,'0')}:00</option>
+                    ))}
+                  </select>
+                  <p className="text-gray-600 text-xs font-body mt-1.5 leading-relaxed">
+                    Si a esa hora no anotaste ninguna comida, el coach te lo recuerda.
+                  </p>
+                </>
+              )}
+            </div>
           </div>
         )}
         {notificationPermission() === 'denied' && (
