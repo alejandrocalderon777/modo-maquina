@@ -12,6 +12,7 @@ import { detectAntiRoutine } from '../components/AntiRoutine'
 import { WeeklyReview } from '../components/WeeklyReview'
 import { SportLogger } from '../components/SportLogger'
 import { requestNotificationPermission, notificationPermission, scheduleReminders, showNotification, inactiveMessage } from '../lib/notifications'
+import { subscribeToPush, updatePushSettings, unsubscribeFromPush, type ReminderSettings } from '../lib/push'
 import { ACHIEVEMENTS, TIER_COLORS, type Category } from '../assets/achievements'
 import { adjustWorkout, signOut, getSession, type AdjustedPlan } from '../lib/supabase'
 import { CalorieRing, MacroRing } from '../components/MacroRing'
@@ -190,6 +191,21 @@ export default function Dashboard() {
   }, [notificationsEnabled, reminderHour, profile.lineage, streakDays,
       workoutReminderEnabled, workoutReminderDays, workoutReminderHour, foodReminderEnabled, foodReminderHour])
 
+  // Sincroniza la config de horarios al servidor de push
+  useEffect(() => {
+    if (notificationsEnabled && notificationPermission() === 'granted') {
+      updatePushSettings({
+        dailyHour: reminderHour,
+        workoutEnabled: workoutReminderEnabled,
+        workoutDays: workoutReminderDays,
+        workoutHour: workoutReminderHour,
+        foodEnabled: foodReminderEnabled,
+        foodHour: foodReminderHour,
+        lineage: profile.lineage,
+      })
+    }
+  }, [notificationsEnabled, reminderHour, workoutReminderEnabled, workoutReminderDays, workoutReminderHour, foodReminderEnabled, foodReminderHour, profile.lineage])
+
   // Aviso empático al volver tras inactividad
   useEffect(() => {
     if (notificationsEnabled && notificationPermission() === 'granted' && showWhyReminder) {
@@ -197,12 +213,23 @@ export default function Dashboard() {
     }
   }, [notificationsEnabled, showWhyReminder, profile.lineage])
 
+  const buildReminderSettings = (): ReminderSettings => ({
+    dailyHour: reminderHour,
+    workoutEnabled: workoutReminderEnabled,
+    workoutDays: workoutReminderDays,
+    workoutHour: workoutReminderHour,
+    foodEnabled: foodReminderEnabled,
+    foodHour: foodReminderHour,
+    lineage: profile.lineage,
+  })
+
   const handleToggleNotifications = async () => {
-    if (notificationsEnabled) { setNotifications(false); return }
+    if (notificationsEnabled) { setNotifications(false); await unsubscribeFromPush(); return }
     const perm = await requestNotificationPermission()
     if (perm === 'granted') {
       setNotifications(true)
-      showNotification({ title: '🔔 Listo', body: 'Te avisaré con cariño, nunca con culpa. Vamos con todo.', tag: 'welcome' })
+      await subscribeToPush(buildReminderSettings())   // push server (app cerrada)
+      showNotification({ title: '🔔 Listo', body: 'Te avisaré aunque la app esté cerrada. Vamos con todo.', tag: 'welcome' })
     }
   }
 
